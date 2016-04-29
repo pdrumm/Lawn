@@ -4,11 +4,14 @@ import pygame
 from pygame.locals import *
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
-# from twisted.internet.defer import DeferredQueue
+from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
-SERVER_HOST = 'student0x.cse.nd.edu'
-SERVER_PORT = 41091
+SERVER_HOST = 'student02.cse.nd.edu'
+SERVER_PORT = 41055
+
+send = DeferredQueue()
+receive = DeferredQueue()
 
 class GameSpace(object):
 	def __init__(self):
@@ -17,13 +20,35 @@ class GameSpace(object):
 		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
 		self.square = Square(self)
+		receive.get().addCallback(self.receiveCallback)
 
 	def main(self):
+		#user input
+		for event in pygame.event.get():
+			if event.type == QUIT:
+				reactor.stop()
+			elif event.type == KEYDOWN:
+				if event.key == K_UP:
+					send.put("up")
+				elif event.key == K_DOWN:
+					send.put("down")
+				elif event.key == K_LEFT:
+					send.put("left")
+				elif event.key == K_RIGHT:
+					send.put("right")
+
 		#display game objects
 		self.screen.fill(self.black)
 		self.screen.blit(self.square.image, self.square.rect)
 
 		pygame.display.flip()
+
+	def receiveCallback(self, data):
+		print type(data)
+		center = [int(x) for x in data.spli(',')]
+		#receive new center? Then set center
+		self.square.rect.center = center
+		receive.get().addCallback(self.receiveCallback)
 
 class Square(pygame.sprite.Sprite):
 	def __init__(self, gs=None):
@@ -41,9 +66,17 @@ class ServerConn(Protocol):
 
 	def connectionMade(self):
 		print "connection made to", SERVER_HOST, "port", SERVER_PORT
+		send.get().addCallback(self.sendCallback)
 
 	def connectionLost(self, reason):
 		print "connection lost to", SERVER_HOST, "port", SERVER_PORT
+
+	def dataReceived(self, data):
+		receive.put(data)
+
+	def sendCallback(self, data):
+		self.transport.write(data)
+		send.get().addCallback(self.sendCallback)
 
 class ServerConnFactory(ClientFactory):
 	def __init__(self, gs):
