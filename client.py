@@ -47,7 +47,7 @@ class GameSpace(object):
 		print data
 		center = [int(x) for x in data.split(',')]
 		#receive new center? Then set center
-		self.square.rect.center = center
+		self.square.rect.center = [center[0], center[1]]
 		receive.get().addCallback(self.receiveCallback)
 
 class Square(pygame.sprite.Sprite):
