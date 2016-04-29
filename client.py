@@ -8,7 +8,7 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
 SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_PORT = 41055
+SERVER_PORT = 40755
 
 send = DeferredQueue()
 receive = DeferredQueue()
@@ -44,7 +44,7 @@ class GameSpace(object):
 		pygame.display.flip()
 
 	def receiveCallback(self, data):
-		print type(data)
+		print data
 		center = [int(x) for x in data.spli(',')]
 		#receive new center? Then set center
 		self.square.rect.center = center
@@ -62,6 +62,7 @@ class Square(pygame.sprite.Sprite):
 
 class ServerConn(Protocol):
 	def __init__(self, gs):
+		print "connection"
 		self.gs = gs
 
 	def connectionMade(self):
@@ -75,14 +76,17 @@ class ServerConn(Protocol):
 		receive.put(data)
 
 	def sendCallback(self, data):
+		print data
 		self.transport.write(data)
 		send.get().addCallback(self.sendCallback)
 
 class ServerConnFactory(ClientFactory):
 	def __init__(self, gs):
+		print "factory"
 		self.gs = gs
 
-	def buildProtocl(self):
+	def buildProtocol(self, addr):
+		print "here"
 		return ServerConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
@@ -90,8 +94,8 @@ class ServerConnFactory(ClientFactory):
 
 if __name__ == '__main__':
 	gs = GameSpace()
-	lc = LoopingCall(gs.main)
-	lc.start(1.0/60)
 	reactor.connectTCP(SERVER_HOST, SERVER_PORT, ServerConnFactory(gs))
+	lc = LoopingCall(gs.main)
+	lc.start(2)
 	reactor.run()
 	lc.stop()
