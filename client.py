@@ -62,7 +62,6 @@ class Square(pygame.sprite.Sprite):
 
 class ServerConn(Protocol):
 	def __init__(self, gs):
-		print "connection"
 		self.gs = gs
 
 	def connectionMade(self):
@@ -76,17 +75,14 @@ class ServerConn(Protocol):
 		receive.put(data)
 
 	def sendCallback(self, data):
-		print data
 		self.transport.write(data)
 		send.get().addCallback(self.sendCallback)
 
 class ServerConnFactory(ClientFactory):
 	def __init__(self, gs):
-		print "factory"
 		self.gs = gs
 
 	def buildProtocol(self, addr):
-		print "here"
 		return ServerConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
