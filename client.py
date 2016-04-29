@@ -92,6 +92,6 @@ if __name__ == '__main__':
 	gs = GameSpace()
 	reactor.connectTCP(SERVER_HOST, SERVER_PORT, ServerConnFactory(gs))
 	lc = LoopingCall(gs.main)
-	lc.start(2)
+	lc.start(1.0/60)
 	reactor.run()
 	lc.stop()
