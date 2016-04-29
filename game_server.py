@@ -10,7 +10,7 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
 # Define Ports: player1 gets port BASE_PORT, player2 gets port BASE_PORT+1, etc
-BASE_PORT = 40000
+BASE_PORT = 40755
 
 
 ####################################################
@@ -26,6 +26,7 @@ class GameServerConnection(Protocol):
 #		self.DataConn = None
 		self.queue = queue
 		self.player = player
+		print 'game server initialized!'
 
 	def connectionMade(self):
 		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
@@ -40,10 +41,12 @@ class GameServerConnection(Protocol):
 	def dataReceived(self,data):
 		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
 		self.queue.put(data)
+		self.player.queue_len += 1
 
-	def update_velocity():
+	def update_position(self):
 		data = str(self.player.x)+','+str(self.player.y)
 		self.transport.write(data)
+		print data
 
 	def connectionLost(self,reason):
 		"""If the command connection is lost with work, then the home script should stop running."""
@@ -59,8 +62,10 @@ class GameServerConnectionFactory(Factory):
 	def __init__(self,player,queue):
 		self.queue = queue
 		self.player = player
+		print 'GameServerConnFactory initialized!'
 	def buildProtocol(self,addr):
 		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
+		print 'conn attempted'
 		return GameServerConnection(addr,self.player,self.queue)
 
 
@@ -86,13 +91,14 @@ def game_loop_iterate(players,player_DQs):
 
 	# send players new gamestate data
 	for player in players:
-		player.server_conn.update_velocity()
+		player.server_conn.update_position()
 
 	# check for user input
 	# for each player, if they have a keypress in the queue, then retrieve the top one
-	for player in len(players):
-		if player_DQs[player].size > 0:
-			player_DQ[player].get().addCallback(players[player].update_dir)
+	for player in range(len(players)):
+		if players[player].queue_len > 0:
+			players[player].queue_len -= 1
+			player_DQs[player].get().addCallback(players[player].update_dir)
 
 ####################################################
 ###################### MAIN ########################
@@ -101,7 +107,7 @@ def game_loop_iterate(players,player_DQs):
 if __name__ == '__main__':
 
 	# listen on all players' ports
-	player_range = range(int(sys.argv[1]))
+	players_range = range(int(sys.argv[1]))
 	players = []
 	player_DQs = []
 	for i in players_range:
@@ -112,6 +118,7 @@ if __name__ == '__main__':
 		queue = DeferredQueue()
 		player_DQs.append(queue)
 		# the reactor is just an event processor
+		print BASE_PORT + i
 		reactor.listenTCP(
 			BASE_PORT + i,
 			GameServerConnectionFactory(player,queue)
