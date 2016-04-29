@@ -45,7 +45,7 @@ class GameSpace(object):
 
 	def receiveCallback(self, data):
 		print data
-		center = [int(x) for x in data.spli(',')]
+		center = [int(x) for x in data.split(',')]
 		#receive new center? Then set center
 		self.square.rect.center = center
 		receive.get().addCallback(self.receiveCallback)
