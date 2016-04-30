@@ -24,10 +24,15 @@ class GameSpace(object):
 		self.size = self.width, self.height = (640, 480)
 		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
-		self.square = Square(self)
+		self.square = Square("lawnmower.png",self)
+		self.shadow = Square("laser.png",self)
 		receive.get().addCallback(self.receiveCallback)
+		# tick regulation variable
+		self.tick = 0
+		self.flip_rate = 30
 
 	def main(self):
+		self.tick = (self.tick+1)%self.flip_rate
 		#user input
 		for event in pygame.event.get():
 			if event.type == QUIT:
@@ -44,24 +49,28 @@ class GameSpace(object):
 
 		#display game objects
 #		self.screen.fill(self.black)
+		self.screen.blit(self.shadow.image, self.shadow.rect)
 		self.screen.blit(self.square.image, self.square.rect)
 		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
 
 		# update does not have the overhead of flip b/c it only blits the args, not the entire page
-		pygame.display.update(self.square)
-#		pygame.display.flip()
+		if self.tick == 0:
+			pygame.display.flip()
+		else:
+			pygame.display.update(self.square)
 
 	def receiveCallback(self, data):
 		center = pickle.loads(data)
 #		center = [int(x) for x in data.split(',')]
 		#receive new center? Then set center
+		self.shadow.rect.center = self.square.rect.center
 		self.square.rect.center = [center[0], center[1]]
 		receive.get().addCallback(self.receiveCallback)
 
 class Square(pygame.sprite.Sprite):
-	def __init__(self, gs=None):
+	def __init__(self, img_file, gs=None):
 		self.gs = gs
-		self.image = pygame.image.load("laser.png")
+		self.image = pygame.image.load(img_file)
 		self.rect = self.image.get_rect()
 		self.rect.center = [100, 100]
 
