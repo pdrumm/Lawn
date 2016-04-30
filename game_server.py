@@ -15,7 +15,7 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
 # Define Ports: player1 gets port BASE_PORT, player2 gets port BASE_PORT+1, etc
-BASE_PORT = 40755
+BASE_PORT = 40091
 
 
 ####################################################
@@ -43,9 +43,9 @@ class GameServerConnection(Protocol):
 		self.queue.put(data)
 		self.player.queue_len += 1
 
-	def update_position(self):
-		data = [self.player.x, self.player.y]
-		data = pickle.dumps(data)
+	def update_player(self,player_centers):
+		"""Send the player the up to date game info"""
+		data = pickle.dumps(player_centers)
 		self.transport.write(data)
 
 	def connectionLost(self,reason):
@@ -82,8 +82,10 @@ class GameSpace(object):
 		# GameSpace vars #
 		##################
 		self.tick = 0
+		self.players_ready = False
 
 		# Create players & player vars
+		self.player_count = len(player_range)
 		self.players = [] # an array of each player dict
 		for i in player_range:
 			# create new player object
@@ -101,6 +103,11 @@ class GameSpace(object):
 		# default rect size
 		image = pygame.image.load("laser.png")
 		self.default_rect = image.get_rect()
+
+		# array to hold the up to date position of players
+		self.curr_centers = []
+		for i in player_range:
+			self.curr_centers.append([])
 
 	def new_ghost(self,center):
 		ghost = pygame.sprite.Sprite()
@@ -135,13 +142,27 @@ class GameSpace(object):
 				print '----------------'
 				print 'EXPLOSION'
 
-	def game_loop_iterate(self):
-		"""Input players is an array of objects: {player_num,player,queue}"""
+	def wait_for_players(self):
 		# check to see if all players are ready
+		players_ready_count = self.player_count
 		for pObj in self.players:
 			if pObj['player'].server_conn == None:
-	#			print 'All players not ready!'
-				return
+				players_ready_count-=1
+
+		if players_ready_count == self.player_count:
+			self.players_ready = True
+
+		# when all of the players are ready, tell each player that we are ready to begin
+		if self.players_ready:
+			for pObj in self.players:
+				pObj['player'].server_conn.update_player({'Player Count':self.player_count})
+
+	def game_loop_iterate(self):
+		"""Input players is an array of objects: {player_num,player,queue}"""
+		# wait until all players have connected
+		if not self.players_ready:
+			gs.wait_for_players()
+			return
 
 		# update game clock
 		self.tick += 1
@@ -155,12 +176,15 @@ class GameSpace(object):
 			# update each players' (x,y)
 			pObj['player'].update()
 
+			# store array of new positions
+			self.curr_centers[pObj['player_num']] = [pObj['player'].x, pObj['player'].y]
+
 		# collision detection
 		self.calculate_collisions()
 
 		# send players new gamestate data
 		for pObj in self.players:
-			pObj['player'].server_conn.update_position()
+			pObj['player'].server_conn.update_player(self.curr_centers)
 
 		# check for user input
 		# for each player, if they have a keypress in the queue, then retrieve the top one
@@ -193,7 +217,6 @@ if __name__ == '__main__':
 			BASE_PORT + i,
 			GameServerConnectionFactory(gs.players[i])
 		)
-
 
 	# initialize game loop
 	lc = LoopingCall(gs.game_loop_iterate)
