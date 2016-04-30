@@ -4,6 +4,7 @@ try:
 	import cPickle as pickle
 except:
 	import pickle
+import pygame
 # Twisted
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import ClientFactory
@@ -71,38 +72,102 @@ class GameServerConnectionFactory(Factory):
 ################ LOOPING CALL ######################
 ####################################################
 
-tick = 0
-def game_loop_iterate(players):
-	"""Input players is an array of objects: {player_num,player,queue}"""
-	# check to see if all players are ready
-	for pObj in players:
-		if pObj['player'].server_conn == None:
-#			print 'All players not ready!'
-			return
+class GameSpace(object):
+	def __init__(self, player_range):
+		pygame.init()
+#		self.size = (self.width, self.height) = (640, 480)
+#		self.screen = pygame.display.set_mode(self.size)
 
-	# update game clock
-	global tick
-	tick += 1
+		##################
+		# GameSpace vars #
+		##################
+		self.tick = 0
 
-	# tick players
-	for pObj in players:
-		pObj['player'].update()
-		#print '({x},{y})'.format(x=player.x,y=player.y)
+		# Create players & player vars
+		self.players = [] # an array of each player dict
+		for i in player_range:
+			# create new player object
+			player = Player()
+			queue = DeferredQueue()
+			self.players.append({
+				'player_num': i,
+				'player': player,
+				'queue': queue
+			})
 
-	# send players new gamestate data
-	for pObj in players:
-		pObj['player'].server_conn.update_position()
+		# create a sprite group for all players' ghosts
+		self.ghosts = pygame.sprite.Group()
 
-	# check for user input
-	# for each player, if they have a keypress in the queue, then retrieve the top one
-	for pObj in players:
-		if pObj['player'].queue_len > 0:
-			pObj['player'].queue_len -= 1
-			pObj['queue'].get().addCallback(pObj['player'].update_dir)
-#	for player in range(len(players)):
-#		if players[player].queue_len > 0:
-#			players[player].queue_len -= 1
-#			player_DQs[player].get().addCallback(players[player].update_dir)
+		# default rect size
+		image = pygame.image.load("laser.png")
+		self.default_rect = image.get_rect()
+
+	def new_ghost(self,center):
+		ghost = pygame.sprite.Sprite()
+		ghost.rect = self.default_rect.copy()
+		ghost.rect.center = center
+		return ghost
+
+	def calculate_collisions(self):
+		"""This method will determine if any player has collided with one of the players' ghosts. It loops through the ghost sprites and determines if any of them collide with a 1xY or Xx1 rectangle that represents the very front edge of the player."""
+		for pObj in self.players:
+			player = pObj['player']
+			# get/set curr rect of player
+			curr_pos = self.new_ghost([player.x, player.y])
+			# set w,h of rect to match direction of movement
+			if player.direction == "U":
+				curr_pos.rect.centery -= curr_pos.rect.height
+				curr_pos.rect.height = 1
+			elif player.direction == "D":
+				curr_pos.rect.centery += curr_pos.rect.height
+				curr_pos.rect.height = 1
+			elif player.direction == "L":
+				curr_pos.rect.centerx -= curr_pos.rect.width
+				curr_pos.rect.width = 1
+			elif player.direction == "R":
+				curr_pos.rect.centerx += curr_pos.rect.width
+				curr_pos.rect.width = 1
+#			curr_pos.rect.width = width
+#			curr_pos.rect.height = height
+			# collision detection
+			contact = pygame.sprite.spritecollide(curr_pos,self.ghosts,False)
+			if(len(contact)>0):
+				print '----------------'
+				print 'EXPLOSION'
+
+	def game_loop_iterate(self):
+		"""Input players is an array of objects: {player_num,player,queue}"""
+		# check to see if all players are ready
+		for pObj in self.players:
+			if pObj['player'].server_conn == None:
+	#			print 'All players not ready!'
+				return
+
+		# update game clock
+		self.tick += 1
+
+		# tick players
+		for pObj in self.players:
+			# generate new ghost for each player
+			old_center = [pObj['player'].x,pObj['player'].y]
+			self.ghosts.add(self.new_ghost(old_center))
+
+			# update each players' (x,y)
+			pObj['player'].update()
+
+		# collision detection
+		self.calculate_collisions()
+
+		# send players new gamestate data
+		for pObj in self.players:
+			pObj['player'].server_conn.update_position()
+
+		# check for user input
+		# for each player, if they have a keypress in the queue, then retrieve the top one
+		for pObj in self.players:
+			if pObj['player'].queue_len > 0:
+				pObj['player'].queue_len -= 1
+				pObj['queue'].get().addCallback(pObj['player'].update_dir)
 
 ####################################################
 ###################### MAIN ########################
@@ -110,32 +175,28 @@ def game_loop_iterate(players):
 
 if __name__ == '__main__':
 
-	# Create players & player vars and then listen on all players' ports
-	players_range = range(int(sys.argv[1]))
-	players = []	# an array of each Player object
-#	player_DQs = []	# an array of each Player's deferred queue
-	for i in players_range:
-		# create new player
-		player = Player()
-		queue = DeferredQueue()
-	#	players.append(player)
-		players.append({
-			'player_num': i,
-			'player': player,
-			'queue': queue
-		})
-		# create player DeferredQueue array
-	#	player_DQs.append(queue)
-	#	players[i].DQ = queue
+	if len(sys.argv)!=2:
+		print 'Usage: python game_server <number of players>'
+		exit()
+
+	# grab the number of players in this game
+	player_count = int(sys.argv[1])
+	player_range = range(player_count)
+
+	# initialize gamespace and generate the player objects within game
+	gs = GameSpace(player_range)
+
+	# Listen on all players' ports
+	for i in player_range:
 		# the reactor is just an event processor
-		print BASE_PORT + i
 		reactor.listenTCP(
 			BASE_PORT + i,
-			GameServerConnectionFactory(players[i])
+			GameServerConnectionFactory(gs.players[i])
 		)
 
+
 	# initialize game loop
-	lc = LoopingCall(game_loop_iterate,players)
+	lc = LoopingCall(gs.game_loop_iterate)
 	lc.start(1.0/60)
 
 	# begin reactor event loop
