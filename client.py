@@ -13,8 +13,9 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 import math
 
-#SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'student01.cse.nd.edu'
+#SERVER_HOST = 'localhost'
+SERVER_HOST = 'student03.cse.nd.edu'
+#SERVER_HOST = 'student01.cse.nd.edu'
 SERVER_PORT = 40091
 
 send = DeferredQueue()
@@ -66,7 +67,7 @@ class GameSpace(object):
 			self.screen.fill((255, 0, 0))
 		else:
 			self.screen.fill(self.black)
-			if len(self.player_shadows > 0):
+			if len(self.player_shadows) > 0:
 			# if len(self.shadow.sprites()) > 0:
 				# self.screen.blit(self.curr_shadow.image, self.curr_shadow.rect)
 			# self.screen.blit(self.square.image, self.square.rect)
@@ -87,10 +88,10 @@ class GameSpace(object):
 		center = pickle.loads(data)
 		#create new square sprite with that center
 		for i in xrange(self.num_players):
-			self.curr_shadow = Square("laser_original.png", [center[0], center[1]], self)
+			self.curr_shadow = Square("laser_original.png", [center[i][0], center[i][1]], self)
 		#update center of player
 			self.player_mowers[i].rect.center = [center[i][0], center[i][1]]
-			self.player_mowers[i].image = self.square.rot_center(self.square.original_image, 90*self.dir)
+			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
 		receive.get().addCallback(self.receiveCallback)
