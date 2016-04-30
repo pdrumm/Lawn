@@ -13,10 +13,9 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 import math
 
-#SERVER_HOST = 'localhost'
+#SERVER_HOST = 'student02.cse.nd.edu'
 SERVER_HOST = 'student03.cse.nd.edu'
-#SERVER_HOST = 'student01.cse.nd.edu'
-SERVER_PORT = 40091
+SERVER_PORT = 40092
 
 send = DeferredQueue()
 receive = DeferredQueue()
@@ -51,16 +50,12 @@ class GameSpace(object):
 				if event.type == KEYDOWN:
 					if event.key == K_UP:
 						send.put("up")
-						self.dir = 1
 					elif event.key == K_DOWN:
 						send.put("down")
-						self.dir = 3
 					elif event.key == K_LEFT:
 						send.put("left")
-						self.dir = 2
 					elif event.key == K_RIGHT:
 						send.put("right")
-						self.dir = 0
 
 		#display game objects
 		if not self.ready:
@@ -85,12 +80,20 @@ class GameSpace(object):
 
 	def receiveCallback(self, data):
 		#receive new center
-		center = pickle.loads(data)
+		new_state = pickle.loads(data)
 		#create new square sprite with that center
 		for i in xrange(self.num_players):
-			self.curr_shadow = Square("laser_original.png", [center[i][0], center[i][1]], self)
+			self.curr_shadow = Square("laser_original.png", [new_state['center'][0], new_state['center'][1]], self)
 		#update center of player
-			self.player_mowers[i].rect.center = [center[i][0], center[i][1]]
+			if new_state['direction'] == 'R':
+				self.dir = 0
+			elif new_state['direction'] == 'L':
+				self.dir = 2
+			elif new_state['direction'] == 'U':
+				self.dir = 1
+			elif new_state['direction'] == 'D':
+				self.dir = 3
+			self.player_mowers[i].rect.center = [new_state['center'][0], new_state['center'][1]]
 			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
