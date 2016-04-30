@@ -41,15 +41,13 @@ class GameSpace(object):
 		self.num_players = 0
 
 	def main(self):
-		if not self.ready:
-			self.screen.fill((255, 0, 0))
-		else:
-			self.tick = (self.tick+1)%self.flip_rate
-			#user input
-			for event in pygame.event.get():
-				if event.type == QUIT:
-					reactor.stop()
-				elif event.type == KEYDOWN:
+		self.tick = (self.tick+1)%self.flip_rate
+		#user input
+		for event in pygame.event.get():
+			if event.type == QUIT:
+				reactor.stop()
+			elif self.ready:
+				if event.type == KEYDOWN:
 					if event.key == K_UP:
 						send.put("up")
 						self.dir = 1
@@ -63,7 +61,10 @@ class GameSpace(object):
 						send.put("right")
 						self.dir = 0
 
-			#display game objects
+		#display game objects
+		if not self.ready:
+			self.screen.fill((255, 0, 0))
+		else:
 			self.screen.fill(self.black)
 			if len(self.player_shadows > 0):
 			# if len(self.shadow.sprites()) > 0:
