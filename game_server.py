@@ -1,5 +1,9 @@
 import sys, getopt
 from server_player import Player
+try:
+	import cPickle as pickle
+except:
+	import pickle
 # Twisted
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import ClientFactory
@@ -44,9 +48,9 @@ class GameServerConnection(Protocol):
 		self.player.queue_len += 1
 
 	def update_position(self):
-		data = str(self.player.x)+','+str(self.player.y)
+		data = [self.player.x, self.player.y]
+		data = pickle.dumps(data)
 		self.transport.write(data)
-		print data
 
 	def connectionLost(self,reason):
 		"""If the command connection is lost with work, then the home script should stop running."""
@@ -88,6 +92,7 @@ def game_loop_iterate(players,player_DQs):
 	# tick players
 	for player in players:
 		player.update()
+		#print '({x},{y})'.format(x=player.x,y=player.y)
 
 	# send players new gamestate data
 	for player in players:

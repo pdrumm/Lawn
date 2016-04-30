@@ -1,7 +1,12 @@
 import sys
 import os
+try:
+	import cPickle as pickle
+except:
+	import pickle
 import pygame
 from pygame.locals import *
+# Twisted
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue
@@ -38,14 +43,17 @@ class GameSpace(object):
 					send.put("right")
 
 		#display game objects
-		self.screen.fill(self.black)
+#		self.screen.fill(self.black)
 		self.screen.blit(self.square.image, self.square.rect)
+		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
 
-		pygame.display.flip()
+		# update does not have the overhead of flip b/c it only blits the args, not the entire page
+		pygame.display.update(self.square)
+#		pygame.display.flip()
 
 	def receiveCallback(self, data):
-		print data
-		center = [int(x) for x in data.split(',')]
+		center = pickle.loads(data)
+#		center = [int(x) for x in data.split(',')]
 		#receive new center? Then set center
 		self.square.rect.center = [center[0], center[1]]
 		receive.get().addCallback(self.receiveCallback)
@@ -62,6 +70,7 @@ class Square(pygame.sprite.Sprite):
 
 class ServerConn(Protocol):
 	def __init__(self, gs):
+		print 'connection init'
 		self.gs = gs
 
 	def connectionMade(self):
@@ -81,15 +90,19 @@ class ServerConn(Protocol):
 class ServerConnFactory(ClientFactory):
 	def __init__(self, gs):
 		self.gs = gs
+		print 'factory init'
 
 	def buildProtocol(self, addr):
+		print 'factory buildprotocol'
 		return ServerConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
 		print "failed to connect to", SERVER_HOST, "port", SERVER_PORT
 
 if __name__ == '__main__':
+	print 'Initializing pygame Gamespace...'
 	gs = GameSpace()
+	print 'Initializing twisted connection...'
 	reactor.connectTCP(SERVER_HOST, SERVER_PORT, ServerConnFactory(gs))
 	lc = LoopingCall(gs.main)
 	lc.start(1.0/60)
