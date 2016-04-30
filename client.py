@@ -11,10 +11,11 @@ from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
+import math
 
 #SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'localhost'
-SERVER_PORT = 40755
+SERVER_HOST = 'student01.cse.nd.edu'
+SERVER_PORT = 40091
 
 send = DeferredQueue()
 receive = DeferredQueue()
@@ -25,12 +26,15 @@ class GameSpace(object):
 		self.size = self.width, self.height = (640, 480)
 		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
-		self.square = Square("lawnmower.png",self)
-		self.shadow = Square("laser.png",self)
+		self.square = Square("temp.png", [-100, -100], self)
+		#self.shadow = Square("laser.png",self)
+		self.shadow = pygame.sprite.Group()
+		self.curr_shadow = None
 		receive.get().addCallback(self.receiveCallback)
 		# tick regulation variable
 		self.tick = 0
 		self.flip_rate = 30
+		self.dir = 0
 
 	def main(self):
 		self.tick = (self.tick+1)%self.flip_rate
@@ -41,42 +45,61 @@ class GameSpace(object):
 			elif event.type == KEYDOWN:
 				if event.key == K_UP:
 					send.put("up")
+					self.dir = 1
 				elif event.key == K_DOWN:
 					send.put("down")
+					self.dir = 3
 				elif event.key == K_LEFT:
 					send.put("left")
+					self.dir = 2
 				elif event.key == K_RIGHT:
 					send.put("right")
+					self.dir = 0
 
 		#display game objects
-#		self.screen.fill(self.black)
-		self.screen.blit(self.shadow.image, self.shadow.rect)
-		self.screen.blit(self.square.image, self.square.rect)
+		self.screen.fill(self.black)
+		# if len(self.shadow.sprites()) > 0:
+			# self.screen.blit(self.curr_shadow.image, self.curr_shadow.rect)
+		# self.screen.blit(self.square.image, self.square.rect)
 #		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
 
 		# update does not have the overhead of flip b/c it only blits the args, not the entire page
-		if self.tick == 0:
-			pygame.display.flip()
-		else:
-			pygame.display.update(self.square)
+		# if self.tick == 0:
+		self.shadow.draw(self.screen)
+		self.screen.blit(self.square.image, self.square.rect)
+		pygame.display.flip()
+		# else:
+			# pygame.display.update(self.square)
 
 	def receiveCallback(self, data):
+		#receive new center
 		center = pickle.loads(data)
-#		center = [int(x) for x in data.split(',')]
-		#receive new center? Then set center
-		self.shadow.rect.center = self.square.rect.center
+		#create new square sprite with that center
+		self.curr_shadow = Square("laser_original.png", [center[0], center[1]], self)
+		#update center of player
 		self.square.rect.center = [center[0], center[1]]
+		self.square.image = self.square.rot_center(self.square.original_image, 90*self.dir)
+		#add new sprite to group
+		self.shadow.add(self.curr_shadow)
 		receive.get().addCallback(self.receiveCallback)
 
 class Square(pygame.sprite.Sprite):
-	def __init__(self, img_file, gs=None):
+	def __init__(self, img_file, center, gs=None):
+		pygame.sprite.Sprite.__init__(self)
 		self.gs = gs
-		self.image = pygame.image.load(img_file)
+		self.original_image = pygame.image.load(img_file)
+		self.image = self.original_image
 		self.rect = self.image.get_rect()
-		self.rect.center = [100, 100]
+		# print center
+		self.rect.center = center
 
-	def tick(self):
-		pass
+	def rot_center(self, image, angle):
+		orig_rect = image.get_rect()
+		rot_image = pygame.transform.rotate(image, angle)
+		rot_rect = orig_rect.copy()
+		rot_rect.center = rot_image.get_rect().center
+		rot_image = rot_image.subsurface(rot_rect).copy()
+		return rot_image
 
 class ServerConn(Protocol):
 	def __init__(self, gs):
@@ -108,6 +131,7 @@ class ServerConnFactory(ClientFactory):
 
 	def clientConnectionFailed(self, connector, reason):
 		print "failed to connect to", SERVER_HOST, "port", SERVER_PORT
+		reactor.stop()
 
 if __name__ == '__main__':
 	print 'Initializing pygame Gamespace...'
