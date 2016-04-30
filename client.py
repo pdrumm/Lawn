@@ -81,19 +81,20 @@ class GameSpace(object):
 	def receiveCallback(self, data):
 		#receive new center
 		new_state = pickle.loads(data)
+		print new_state
 		#create new square sprite with that center
 		for i in xrange(self.num_players):
-			self.curr_shadow = Square("laser_original.png", [new_state['center'][0], new_state['center'][1]], self)
+			self.curr_shadow = Square("laser_original.png", [new_state[i]['center'][0], new_state[i]['center'][1]], self)
 		#update center of player
-			if new_state['direction'] == 'R':
+			if new_state[i]['direction'] == 'R':
 				self.dir = 0
-			elif new_state['direction'] == 'L':
+			elif new_state[i]['direction'] == 'L':
 				self.dir = 2
-			elif new_state['direction'] == 'U':
+			elif new_state[i]['direction'] == 'U':
 				self.dir = 1
-			elif new_state['direction'] == 'D':
+			elif new_state[i]['direction'] == 'D':
 				self.dir = 3
-			self.player_mowers[i].rect.center = [new_state['center'][0], new_state['center'][1]]
+			self.player_mowers[i].rect.center = [new_state[i]['center'][0], new_state[i]['center'][1]]
 			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
