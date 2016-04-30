@@ -105,9 +105,12 @@ class GameSpace(object):
 		self.default_rect = image.get_rect()
 
 		# array to hold the up to date position of players
-		self.curr_centers = []
+		self.player_state = []
 		for i in player_range:
-			self.curr_centers.append([])
+			self.player_state.append({
+				"center": [],
+				"direction": ""
+			})
 
 	def new_ghost(self,center):
 		ghost = pygame.sprite.Sprite()
@@ -176,15 +179,16 @@ class GameSpace(object):
 			# update each players' (x,y)
 			pObj['player'].update()
 
-			# store array of new positions
-			self.curr_centers[pObj['player_num']] = [pObj['player'].x, pObj['player'].y]
+			# store array of new positions & direction
+			self.player_state[pObj['player_num']]["center"] = [pObj['player'].x, pObj['player'].y]
+			self.player_state[pObj['player_num']]["direction"] = pObj['player'].direction
 
 		# collision detection
 		self.calculate_collisions()
 
 		# send players new gamestate data
 		for pObj in self.players:
-			pObj['player'].server_conn.update_player(self.curr_centers)
+			pObj['player'].server_conn.update_player(self.player_state)
 
 		# check for user input
 		# for each player, if they have a keypress in the queue, then retrieve the top one
