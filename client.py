@@ -12,7 +12,8 @@ from twisted.internet import reactor
 from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
-SERVER_HOST = 'student02.cse.nd.edu'
+#SERVER_HOST = 'student02.cse.nd.edu'
+SERVER_HOST = 'localhost'
 SERVER_PORT = 40755
 
 send = DeferredQueue()
@@ -51,7 +52,7 @@ class GameSpace(object):
 #		self.screen.fill(self.black)
 		self.screen.blit(self.shadow.image, self.shadow.rect)
 		self.screen.blit(self.square.image, self.square.rect)
-		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
+#		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
 
 		# update does not have the overhead of flip b/c it only blits the args, not the entire page
 		if self.tick == 0:

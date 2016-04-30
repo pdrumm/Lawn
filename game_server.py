@@ -23,22 +23,17 @@ BASE_PORT = 40755
 
 class GameServerConnection(Protocol):
 	"""An instance of the Protocol class is instantiated when you connect to the client and will go away when the connection is finished. This connection protocol handles home's connection on the command port, which is used to do initial setup and pass high level instructions."""
-	def __init__(self,addr,player,queue):
+	def __init__(self,addr,player_obj):
 		"""This method initializes a few important varibles for the CommandServerConnection. The addr stores the ip address of the work client connected to itself. The ClientConn and DataConn, currently initiated to None, will point to the instance of the ClientServerConnection and DataServerConnection  that home has at a given instance in time. The queue is a deferred queue which will temporarily hold data sent from the ssh client until the data connection is made."""
 		self.addr = addr
-#		self.ClientConn = None
-#		self.DataConn = None
-		self.queue = queue
-		self.player = player
+		self.player_num = player_obj['player_num']
+		self.queue = player_obj['queue']
+		self.player = player_obj['player']
 		print 'game server initialized!'
 
 	def connectionMade(self):
 		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
-#		reactor.listenTCP(
-#			CLIENT_PORT,
-#			ClientServerConnectionFactory(self)
-#		)
-		print 'command connection received from {addr}'.format(addr=self.addr)
+		print 'game connection received from {addr}'.format(addr=self.addr)
 		self.player.server_conn = self
 
 	# Work -> Home
@@ -63,14 +58,13 @@ class GameServerConnection(Protocol):
 
 class GameServerConnectionFactory(Factory):
 	"""The ServerFactory is a factory that creates Protocols and receives events relating to the conenction state."""
-	def __init__(self,player,queue):
-		self.queue = queue
-		self.player = player
+	def __init__(self,player_obj):
+		self.player_obj = player_obj
 		print 'GameServerConnFactory initialized!'
 	def buildProtocol(self,addr):
 		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
 		print 'conn attempted'
-		return GameServerConnection(addr,self.player,self.queue)
+		return GameServerConnection(addr,self.player_obj)
 
 
 ####################################################
@@ -78,11 +72,12 @@ class GameServerConnectionFactory(Factory):
 ####################################################
 
 tick = 0
-def game_loop_iterate(players,player_DQs):
+def game_loop_iterate(players):
+	"""Input players is an array of objects: {player_num,player,queue}"""
 	# check to see if all players are ready
-	for player in players:
-		if player.server_conn == None:
-			print 'All players not ready!'
+	for pObj in players:
+		if pObj['player'].server_conn == None:
+#			print 'All players not ready!'
 			return
 
 	# update game clock
@@ -90,20 +85,24 @@ def game_loop_iterate(players,player_DQs):
 	tick += 1
 
 	# tick players
-	for player in players:
-		player.update()
+	for pObj in players:
+		pObj['player'].update()
 		#print '({x},{y})'.format(x=player.x,y=player.y)
 
 	# send players new gamestate data
-	for player in players:
-		player.server_conn.update_position()
+	for pObj in players:
+		pObj['player'].server_conn.update_position()
 
 	# check for user input
 	# for each player, if they have a keypress in the queue, then retrieve the top one
-	for player in range(len(players)):
-		if players[player].queue_len > 0:
-			players[player].queue_len -= 1
-			player_DQs[player].get().addCallback(players[player].update_dir)
+	for pObj in players:
+		if pObj['player'].queue_len > 0:
+			pObj['player'].queue_len -= 1
+			pObj['queue'].get().addCallback(pObj['player'].update_dir)
+#	for player in range(len(players)):
+#		if players[player].queue_len > 0:
+#			players[player].queue_len -= 1
+#			player_DQs[player].get().addCallback(players[player].update_dir)
 
 ####################################################
 ###################### MAIN ########################
@@ -111,26 +110,32 @@ def game_loop_iterate(players,player_DQs):
 
 if __name__ == '__main__':
 
-	# listen on all players' ports
+	# Create players & player vars and then listen on all players' ports
 	players_range = range(int(sys.argv[1]))
-	players = []
-	player_DQs = []
+	players = []	# an array of each Player object
+#	player_DQs = []	# an array of each Player's deferred queue
 	for i in players_range:
 		# create new player
 		player = Player()
-		players.append(player)
-		# create player DeferredQueue array
 		queue = DeferredQueue()
-		player_DQs.append(queue)
+	#	players.append(player)
+		players.append({
+			'player_num': i,
+			'player': player,
+			'queue': queue
+		})
+		# create player DeferredQueue array
+	#	player_DQs.append(queue)
+	#	players[i].DQ = queue
 		# the reactor is just an event processor
 		print BASE_PORT + i
 		reactor.listenTCP(
 			BASE_PORT + i,
-			GameServerConnectionFactory(player,queue)
+			GameServerConnectionFactory(players[i])
 		)
 
 	# initialize game loop
-	lc = LoopingCall(game_loop_iterate,players,player_DQs)
+	lc = LoopingCall(game_loop_iterate,players)
 	lc.start(1.0/60)
 
 	# begin reactor event loop
