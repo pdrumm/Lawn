@@ -80,8 +80,11 @@ class GameSpace(object):
 
 	def receiveCallback(self, data):
 		#receive new center
-		new_state = pickle.loads(data)
-		print new_state
+		try:
+			new_state = pickle.loads(data)
+		except:
+			receive.get().addCallback(self.receiveCallback)
+			return
 		#create new square sprite with that center
 		for i in xrange(self.num_players):
 			self.curr_shadow = Square("laser_original.png", [new_state[i]['center'][0], new_state[i]['center'][1]], self)
