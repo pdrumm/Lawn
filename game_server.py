@@ -109,7 +109,8 @@ class GameSpace(object):
 		for i in player_range:
 			self.player_state.append({
 				"center": [],
-				"direction": ""
+				"direction": "",
+				"alive": True
 			})
 
 	def new_ghost(self,center):
@@ -142,6 +143,7 @@ class GameSpace(object):
 			# collision detection
 			contact = pygame.sprite.spritecollide(curr_pos,self.ghosts,False)
 			if(len(contact)>0):
+				player.is_alive = False
 				print '----------------'
 				print 'EXPLOSION'
 			else:
@@ -174,16 +176,18 @@ class GameSpace(object):
 
 		# tick players
 		for pObj in self.players:
-			# generate new ghost for each player
-			old_center = [pObj['player'].x,pObj['player'].y]
-			self.ghosts.add(self.new_ghost(old_center))
+			if pObj['player'].is_alive:
+				# generate new ghost for each player
+				old_center = [pObj['player'].x,pObj['player'].y]
+				self.ghosts.add(self.new_ghost(old_center))
 
-			# update each players' (x,y)
-			pObj['player'].update()
+				# update each players' (x,y)
+				pObj['player'].update()
 
-			# store array of new positions & direction
-			self.player_state[pObj['player_num']]["center"] = [pObj['player'].x, pObj['player'].y]
-			self.player_state[pObj['player_num']]["direction"] = pObj['player'].direction
+				# store array of new positions & direction
+				self.player_state[pObj['player_num']]["center"] = [pObj['player'].x, pObj['player'].y]
+				self.player_state[pObj['player_num']]["direction"] = pObj['player'].direction
+				self.player_state[pObj['player_num']]["alive"] = pObj['player'].is_alive
 
 		# collision detection
 		self.calculate_collisions()

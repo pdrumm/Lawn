@@ -18,6 +18,8 @@ class Player:
 	(screen_w, screen_h) = (640,480)
 	screen_offset = 30
 
+	is_alive = True
+
 	def __init__(self,pNum):
 		# set initial arrays for respective players and assign values accordingly
 		directions = ["R","L","D","U"]
