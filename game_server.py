@@ -144,10 +144,6 @@ class GameSpace(object):
 			contact = pygame.sprite.spritecollide(curr_pos,self.ghosts,False)
 			if(len(contact)>0):
 				player.is_alive = False
-				print '----------------'
-				print 'EXPLOSION'
-			else:
-				print 'nah'
 
 	def wait_for_players(self):
 		# check to see if all players are ready
