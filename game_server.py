@@ -101,7 +101,7 @@ class GameSpace(object):
 		self.ghosts = pygame.sprite.Group()
 
 		# default rect size
-		image = pygame.image.load("laser.png")
+		image = pygame.image.load("laser_original.png")
 		self.default_rect = image.get_rect()
 
 		# array to hold the up to date position of players
@@ -144,6 +144,8 @@ class GameSpace(object):
 			if(len(contact)>0):
 				print '----------------'
 				print 'EXPLOSION'
+			else:
+				print 'nah'
 
 	def wait_for_players(self):
 		# check to see if all players are ready
