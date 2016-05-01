@@ -21,8 +21,8 @@ class Player:
 	def __init__(self,pNum):
 		# set initial arrays for respective players and assign values accordingly
 		directions = ["R","L","D","U"]
-		starting_pos = [(screen_offset,screen_h/2),(screen_w/2,screen_offset),(screen_w-screen_offset,screen_h/2),(screen_w/2,screen_h-screen_offset)]
-		velocity = [(speed,0),(-1*speed,0),(0,speed),(0,-1*speed)]
+		starting_pos = [(self.screen_offset,self.screen_h/2),(self.screen_w/2,self.screen_offset),(self.screen_w-self.screen_offset,self.screen_h/2),(self.screen_w/2,self.screen_h-self.screen_offset)]
+		velocity = [(self.speed,0),(-1*self.speed,0),(0,self.speed),(0,-1*self.speed)]
 
 		self.direction = directions[pNum]
 		self.x = starting_pos[pNum][0]
