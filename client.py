@@ -14,7 +14,7 @@ from twisted.internet.task import LoopingCall
 import math
 
 #SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'student03.cse.nd.edu'
+SERVER_HOST = 'student01.cse.nd.edu'
 SERVER_PORT = 40091
 
 send = DeferredQueue()
@@ -27,7 +27,6 @@ class GameSpace(object):
 		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
 		# self.square = Square("temp.png", [-100, -100], self)
-		#self.shadow = Square("laser.png",self)
 		self.player_mowers = []
 		self.player_shadows = []
 		# self.shadow = pygame.sprite.Group()
@@ -39,10 +38,13 @@ class GameSpace(object):
 		self.dir = 0
 		self.ready = False
 		self.num_players = 0
-		self.ghosts = ["laser_red.png", "laser_green.png", "laser_blue.png", "laser_yellow.png"]
+		self.ghosts = ["red_grass.png", "blue_grass.png", "purple_grass.png", "orange_grass.png"]
+		self.mowers = ["red_mower.png", "blue_mower.png", "purple_mower.png", "orange_mower.png"]
+		self.title = Square("title.png", [self.width/2, self.height/2], self)
+		self.background = Square("grass_background.png", [self.width/2, self.height/2], self)
 		self.alive = True
 		self.game_over = Square("gameover.png", [self.width/2, self.height/2], self)
-		sel.player_number = 0
+		self.player_number = 0
 
 	def main(self):
 		self.tick = (self.tick+1)%self.flip_rate
@@ -62,9 +64,12 @@ class GameSpace(object):
 						send.put("right")
 
 		#display game objects
+		self.screen.blit(self.background.image, self.background.rect)
 		if not self.ready:
-			self.screen.fill((255, 0, 0))
+			#display loading screen
+			self.screen.blit(self.title.image, self.title.rect)
 		else:
+			#display game
 			self.screen.fill(self.black)
 			if len(self.player_shadows) > 0:
 			# if len(self.shadow.sprites()) > 0:
@@ -113,7 +118,7 @@ class GameSpace(object):
 
 	def make_players(self):
 		for i in xrange(self.num_players):
-			self.player_mowers.append(Square("temp.png", [-100, -100], self))
+			self.player_mowers.append(Square(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
 
 		self.ready = True
