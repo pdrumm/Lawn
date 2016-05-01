@@ -40,6 +40,8 @@ class GameSpace(object):
 		self.ready = False
 		self.num_players = 0
 		self.ghosts = ["laser_red.png", "laser_green.png", "laser_blue.png", "laser_yellow.png"]
+		self.alive = True
+		self.game_over = Square("gameover.png", [self.width/2, self.height/2], self)
 
 	def main(self):
 		self.tick = (self.tick+1)%self.flip_rate
@@ -75,6 +77,8 @@ class GameSpace(object):
 					player.draw(self.screen)
 				for player in self.player_mowers:
 					self.screen.blit(player.image, player.rect)
+			if not self.alive:
+				self.screen.blit(self.game_over.image, self.game_over.rect)
 		pygame.display.flip()
 		# else:
 			# pygame.display.update(self.square)
@@ -102,6 +106,8 @@ class GameSpace(object):
 			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
+			if new_state[i]['alive'] is False:
+				self.alive = False
 		receive.get().addCallback(self.receiveCallback)
 
 	def make_players(self):
