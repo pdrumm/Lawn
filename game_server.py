@@ -162,7 +162,10 @@ class GameSpace(object):
 		# when all of the players are ready, tell each player that we are ready to begin
 		if self.players_ready:
 			for pObj in self.players:
-				pObj['player'].server_conn.update_player({'Player Count':self.player_count})
+				pObj['player'].server_conn.update_player({
+					'Player Count': self.player_count,
+					'Player Number': pObj['player_num']
+				})
 
 	def game_loop_iterate(self):
 		"""Input players is an array of objects: {player_num,player,queue}"""
@@ -176,6 +179,7 @@ class GameSpace(object):
 
 		# tick players
 		for pObj in self.players:
+			self.player_state[pObj['player_num']]["alive"] = pObj['player'].is_alive
 			if pObj['player'].is_alive:
 				# generate new ghost for each player
 				old_center = [pObj['player'].x,pObj['player'].y]
@@ -187,7 +191,6 @@ class GameSpace(object):
 				# store array of new positions & direction
 				self.player_state[pObj['player_num']]["center"] = [pObj['player'].x, pObj['player'].y]
 				self.player_state[pObj['player_num']]["direction"] = pObj['player'].direction
-				self.player_state[pObj['player_num']]["alive"] = pObj['player'].is_alive
 
 		# collision detection
 		self.calculate_collisions()
