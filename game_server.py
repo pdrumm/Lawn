@@ -223,13 +223,13 @@ if __name__ == '__main__':
 	for i in player_range:
 		# the reactor is just an event processor
 		reactor.listenTCP(
-			GAME_PORT,
+			GAME_PORT + 1,
 			GameServerConnectionFactory(gs.players[i])
 		)
 
 	# initialize game loop
 	lc = LoopingCall(gs.game_loop_iterate)
-	lc.start(1.0/60)
+	lc.start(1.0/20)
 
 	# begin reactor event loop
 	reactor.run()

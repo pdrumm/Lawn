@@ -9,7 +9,7 @@ class Player:
 	# Set speed vector of player
 	(x,y) = (0,0)
 	(dx,dy) = (0,0)
-	speed = 1
+	speed = 3
 
 	# What direction is the player facing?
 	direction = ""
