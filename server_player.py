@@ -16,12 +16,12 @@ class Player:
 
 	# screen vars
 	(screen_w, screen_h) = (640,480)
-	screen_offset = 15
+	screen_offset = 30
 
 	def __init__(self,pNum):
 		# set initial arrays for respective players and assign values accordingly
 		directions = ["R","L","D","U"]
-		starting_pos = [(self.screen_offset,self.screen_h/2),(self.screen_w/2,self.screen_offset),(self.screen_w-self.screen_offset,self.screen_h/2),(self.screen_w/2,self.screen_h-self.screen_offset)]
+		starting_pos = [(self.screen_offset,self.screen_h/2),(self.screen_w-self.screen_offset,self.screen_h/2),(self.screen_w/2,self.screen_offset),(self.screen_w/2,self.screen_h-self.screen_offset)]
 		velocity = [(self.speed,0),(-1*self.speed,0),(0,self.speed),(0,-1*self.speed)]
 
 		self.direction = directions[pNum]
