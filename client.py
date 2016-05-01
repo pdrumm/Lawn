@@ -14,8 +14,8 @@ from twisted.internet.task import LoopingCall
 import math
 
 #SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'student03.cse.nd.edu'
-SERVER_PORT = 40092
+SERVER_HOST = 'student01.cse.nd.edu'
+SERVER_PORT = 40091
 
 send = DeferredQueue()
 receive = DeferredQueue()
@@ -39,6 +39,7 @@ class GameSpace(object):
 		self.dir = 0
 		self.ready = False
 		self.num_players = 0
+		self.ghosts = ["laser_red.png", "laser_green.png", "laser_blue.png", "laser_yellow.png"]
 
 	def main(self):
 		self.tick = (self.tick+1)%self.flip_rate
@@ -87,7 +88,7 @@ class GameSpace(object):
 			return
 		#create new square sprite with that center
 		for i in xrange(self.num_players):
-			self.curr_shadow = Square("laser_original.png", [new_state[i]['center'][0], new_state[i]['center'][1]], self)
+			self.curr_shadow = Square(self.ghosts[i], [new_state[i]['center'][0], new_state[i]['center'][1]], self)
 		#update center of player
 			if new_state[i]['direction'] == 'R':
 				self.dir = 0
@@ -139,6 +140,10 @@ class ServerConn(Protocol):
 
 	def connectionLost(self, reason):
 		print "connection lost to", SERVER_HOST, "port", SERVER_PORT
+		try:
+			reactor.stop()
+		except:
+			pass
 
 	def dataReceived(self, data):
 		if not self.gs.ready:
