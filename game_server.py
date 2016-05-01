@@ -162,7 +162,10 @@ class GameSpace(object):
 		# when all of the players are ready, tell each player that we are ready to begin
 		if self.players_ready:
 			for pObj in self.players:
-				pObj['player'].server_conn.update_player({'Player Count':self.player_count})
+				pObj['player'].server_conn.update_player({
+					'Player Count': self.player_count,
+					'Player Number': pObj['player_num']
+				})
 
 	def game_loop_iterate(self):
 		"""Input players is an array of objects: {player_num,player,queue}"""
