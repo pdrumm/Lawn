@@ -14,7 +14,7 @@ from twisted.internet.task import LoopingCall
 import math
 
 #SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'student01.cse.nd.edu'
+SERVER_HOST = 'student03.cse.nd.edu'
 SERVER_PORT = 40091
 
 send = DeferredQueue()
@@ -42,6 +42,7 @@ class GameSpace(object):
 		self.ghosts = ["laser_red.png", "laser_green.png", "laser_blue.png", "laser_yellow.png"]
 		self.alive = True
 		self.game_over = Square("gameover.png", [self.width/2, self.height/2], self)
+		sel.player_number = 0
 
 	def main(self):
 		self.tick = (self.tick+1)%self.flip_rate
@@ -106,7 +107,7 @@ class GameSpace(object):
 			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
-			if new_state[i]['alive'] is False:
+			if new_state[i]['alive'] == False and i == self.player_number:
 				self.alive = False
 		receive.get().addCallback(self.receiveCallback)
 
@@ -154,9 +155,9 @@ class ServerConn(Protocol):
 	def dataReceived(self, data):
 		if not self.gs.ready:
 			unpack = pickle.loads(data)
-			for key in unpack.keys():
-				self.gs.num_players = unpack[key]
-				self.gs.make_players()
+			self.gs.num_players = unpack['Player Count']
+			self.gs.player_number = unpack['Player Number']
+			self.gs.make_players()
 		else:
 			receive.put(data)
 
