@@ -12,10 +12,23 @@ class Player:
 	speed = 1
 
 	# What direction is the player facing?
-	direction = "R"
+	direction = ""
 
-	def __init__(self):
-		pass
+	# screen vars
+	(screen_w, screen_h) = (640,480)
+	screen_offset = 15
+
+	def __init__(self,pNum):
+		# set initial arrays for respective players and assign values accordingly
+		directions = ["R","L","D","U"]
+		starting_pos = [(screen_offset,screen_h/2),(screen_w/2,screen_offset),(screen_w-screen_offset,screen_h/2),(screen_w/2,screen_h-screen_offset)]
+		velocity = [(speed,0),(-1*speed,0),(0,speed),(0,-1*speed)]
+
+		self.direction = directions[pNum]
+		self.x = starting_pos[pNum][0]
+		self.y = starting_pos[pNum][1]
+		self.dx = velocity[pNum][0]
+		self.dy = velocity[pNum][1]
 
 	def update(self):
 		# Move left/right
@@ -26,21 +39,22 @@ class Player:
 	def update_dir(self,dir):
 		"""Called when the user hits an arrow key."""
 		if dir == "up":
-			self.direction = "U"
-			self.dx = 0
-			self.dy = -1*self.speed
+			if self.direction != "D":
+				self.direction = "U"
+				self.dx = 0
+				self.dy = -1*self.speed
 		elif dir == "down":
-			self.direction = "D"
-			self.dx = 0
-			self.dy = 1*self.speed
+			if self.direction != "U":
+				self.direction = "D"
+				self.dx = 0
+				self.dy = 1*self.speed
 		elif dir == "left":
-			self.direction = "L"
-			self.dx = -1*self.speed
-			self.dy = 0
+			if self.direction != "R":
+				self.direction = "L"
+				self.dx = -1*self.speed
+				self.dy = 0
 		elif dir == "right":
-			self.direction = "R"
-			self.dx = 1*self.speed
-			self.dy = 0
-		print dir
-		print 'x: {x}, y: {y}'.format(x=self.x,y=self.y)
-		print 'dx: {dx}, dy: {dy}'.format(dx=self.dx,dy=self.dy)
+			if self.direction != "L":
+				self.direction = "R"
+				self.dx = 1*self.speed
+				self.dy = 0

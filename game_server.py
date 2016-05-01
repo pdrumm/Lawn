@@ -89,7 +89,7 @@ class GameSpace(object):
 		self.players = [] # an array of each player dict
 		for i in player_range:
 			# create new player object
-			player = Player()
+			player = Player(i)
 			queue = DeferredQueue()
 			self.players.append({
 				'player_num': i,
