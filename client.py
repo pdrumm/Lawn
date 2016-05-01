@@ -14,7 +14,7 @@ from twisted.internet.task import LoopingCall
 import math
 
 #SERVER_HOST = 'student02.cse.nd.edu'
-SERVER_HOST = 'student01.cse.nd.edu'
+SERVER_HOST = 'student03.cse.nd.edu'
 SERVER_PORT = 40091
 
 send = DeferredQueue()
@@ -70,7 +70,6 @@ class GameSpace(object):
 			self.screen.blit(self.title.image, self.title.rect)
 		else:
 			#display game
-			self.screen.fill(self.black)
 			if len(self.player_shadows) > 0:
 			# if len(self.shadow.sprites()) > 0:
 				# self.screen.blit(self.curr_shadow.image, self.curr_shadow.rect)
@@ -189,6 +188,6 @@ if __name__ == '__main__':
 	print 'Initializing twisted connection...'
 	reactor.connectTCP(SERVER_HOST, SERVER_PORT, ServerConnFactory(gs))
 	lc = LoopingCall(gs.main)
-	lc.start(1.0/60)
+	lc.start(1.0/20)
 	reactor.run()
 	lc.stop()
