@@ -20,6 +20,7 @@ MAX_PLAYERS = 4
 WAIT_TIME = 60 #seconds
 READY_TIME = 5 #seconds
 GAME_PORT = 40055
+HOST_NAME = "student03.cse.nd.edu"
 # Clock vars
 INIT_TIMER = True
 START_TIME = 0.0
@@ -58,8 +59,9 @@ class MatchmakerServerConnection(Protocol):
 	def start_game(self,pNum,player_count,game_port):
 		data = {
 			"Begin Game": True,
-			"Player number": pNum,
-			"Player count": player_count,
+			"Player Number": pNum,
+			"Players Total": player_count,
+			"Host": HOST_NAME,
 			"Port": game_port
 		}
 		self.update_player(data)
@@ -100,6 +102,7 @@ def matchmaker_loop_iterate(players):
 			if i >= MAX_PLAYERS:
 				break
 			players[i].countdown = START_TIME
+		INIT_TIMER = 0
 
 	# update the game-start timer
 	CURR_TIME = time.time() - START_TIME
@@ -127,9 +130,10 @@ def matchmaker_loop_iterate(players):
 		if i >= MAX_PLAYERS-1:
 			break
 		players[i].update_player({
-			"players ready": players_ready,
-			"players total": players_total,
-			"timer": CURR_TIME
+			"Begin Game": False,
+			"Players Ready": players_ready,
+			"Players Total": players_total,
+			"Time Left": CURR_TIME
 		})
 
 	# if the timer hits zero, then begin the game!
@@ -148,6 +152,7 @@ def matchmaker_loop_iterate(players):
 				player = players.pop(0)
 				player.start_game(i,players_ready,GAME_PORT)
 			GAME_PORT += 1
+			INIT_TIMER = 1
 
 
 # Handler for dead children
