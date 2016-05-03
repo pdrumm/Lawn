@@ -26,7 +26,7 @@ class GameSpace(object):
 		self.size = self.width, self.height = (640, 480)
 		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
-		# self.square = Square("temp.png", [-100, -100], self)
+		# self.square = Square("images/temp.png", [-100, -100], self)
 		self.player_mowers = []
 		self.player_shadows = []
 		# self.shadow = pygame.sprite.Group()
@@ -38,12 +38,12 @@ class GameSpace(object):
 		self.dir = 0
 		self.ready = False
 		self.num_players = 0
-		self.ghosts = ["red_grass.png", "blue_grass.png", "purple_grass.png", "orange_grass.png"]
-		self.mowers = ["red_mower.png", "blue_mower.png", "purple_mower.png", "orange_mower.png"]
-		self.title = Square("title.png", [self.width/2, self.height/2], self)
-		self.background = Square("grass_background.png", [self.width/2, self.height/2], self)
+		self.ghosts = ["images/red_grass.png", "images/blue_grass.png", "images/purple_grass.png", "images/orange_grass.png"]
+		self.mowers = ["images/red_mower.png", "images/blue_mower.png", "images/purple_mower.png", "image/orange_mower.png"]
+		self.title = Square("images/title.png", [self.width/2, self.height/2], self)
+		self.background = Square("images/grass_background.png", [self.width/2, self.height/2], self)
 		self.alive = True
-		self.game_over = Square("gameover.png", [self.width/2, self.height/2], self)
+		self.game_over = Square("images/gameover.png", [self.width/2, self.height/2], self)
 		self.player_number = 0
 
 	def main(self):
