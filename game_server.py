@@ -138,11 +138,9 @@ class GameSpace(object):
 			elif player.direction == "R":
 				curr_pos.rect.centerx += curr_pos.rect.width
 				curr_pos.rect.width = 1
-#			curr_pos.rect.width = width
-#			curr_pos.rect.height = height
 			# collision detection
 			contact = pygame.sprite.spritecollide(curr_pos,self.ghosts,False)
-			if(len(contact)>0):
+			if (len(contact)>0 or player.is_out_of_bounds):
 				player.is_alive = False
 
 	def wait_for_players(self):

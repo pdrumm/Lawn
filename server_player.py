@@ -17,6 +17,7 @@ class Player:
 	# screen vars
 	(screen_w, screen_h) = (640,480)
 	screen_offset = 30
+	sprite_radius = 6
 
 	is_alive = True
 
@@ -60,3 +61,11 @@ class Player:
 				self.direction = "R"
 				self.dx = 1*self.speed
 				self.dy = 0
+
+	def is_out_of_bounds(self):
+		is_ob = False
+		if self.x < 0 + self.sprite_radius or self.x > self.screen_w - self.sprite_radius:
+			is_ob = True
+		elif self.y < 0 + self.sprite_radius or self.y > self.screen_h - self.sprite_radius:
+			is_ob = True
+		return is_ob
