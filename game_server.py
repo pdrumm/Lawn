@@ -140,7 +140,7 @@ class GameSpace(object):
 				curr_pos.rect.width = 1
 			# collision detection
 			contact = pygame.sprite.spritecollide(curr_pos,self.ghosts,False)
-			if (len(contact)>0 or player.is_out_of_bounds):
+			if (len(contact)>0 or player.is_out_of_bounds() ):
 				player.is_alive = False
 
 	def wait_for_players(self):
