@@ -13,7 +13,6 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 import math
 
-#SERVER_HOST = 'student02.cse.nd.edu'
 SERVER_HOST = 'student03.cse.nd.edu'
 SERVER_PORT = 40091
 
@@ -24,12 +23,9 @@ class GameSpace(object):
 	def __init__(self):
 		pygame.init()
 		self.size = self.width, self.height = (640, 480)
-		self.black = (0, 0, 0)
 		self.screen = pygame.display.set_mode(self.size)
-		# self.square = Square("images/temp.png", [-100, -100], self)
 		self.player_mowers = []
 		self.player_shadows = []
-		# self.shadow = pygame.sprite.Group()
 		self.curr_shadow = None
 		receive.get().addCallback(self.receiveCallback)
 		# tick regulation variable
@@ -40,10 +36,10 @@ class GameSpace(object):
 		self.num_players = 0
 		self.ghosts = ["images/red_grass.png", "images/blue_grass.png", "images/purple_grass.png", "images/orange_grass.png"]
 		self.mowers = ["images/red_mower.png", "images/blue_mower.png", "images/purple_mower.png", "image/orange_mower.png"]
-		self.title = Square("images/title.png", [self.width/2, self.height/2], self)
-		self.background = Square("images/grass_background.png", [self.width/2, self.height/2], self)
+		self.title = Image("images/title.png", [self.width/2, self.height/2], self)
+		self.background = Image("images/grass_background.png", [self.width/2, self.height/2], self)
 		self.alive = True
-		self.game_over = Square("images/gameover.png", [self.width/2, self.height/2], self)
+		self.game_over = Image("images/gameover.png", [self.width/2, self.height/2], self)
 		self.player_number = 0
 
 	def main(self):
@@ -73,8 +69,6 @@ class GameSpace(object):
 			if len(self.player_shadows) > 0:
 			# if len(self.shadow.sprites()) > 0:
 				# self.screen.blit(self.curr_shadow.image, self.curr_shadow.rect)
-			# self.screen.blit(self.square.image, self.square.rect)
-	#		print '({x},{y})'.format(x=self.square.rect.x,y=self.square.rect.y)
 
 			# update does not have the overhead of flip b/c it only blits the args, not the entire page
 			# if self.tick == 0:
@@ -86,7 +80,7 @@ class GameSpace(object):
 				self.screen.blit(self.game_over.image, self.game_over.rect)
 		pygame.display.flip()
 		# else:
-			# pygame.display.update(self.square)
+			# pygame.display.update(self.Image)
 
 	def receiveCallback(self, data):
 		#receive new center
@@ -95,9 +89,9 @@ class GameSpace(object):
 		except:
 			receive.get().addCallback(self.receiveCallback)
 			return
-		#create new square sprite with that center
+		#create new Image sprite with that center
 		for i in xrange(self.num_players):
-			self.curr_shadow = Square(self.ghosts[i], [new_state[i]['center'][0], new_state[i]['center'][1]], self)
+			self.curr_shadow = Image(self.ghosts[i], [new_state[i]['center'][0], new_state[i]['center'][1]], self)
 		#update center of player
 			if new_state[i]['direction'] == 'R':
 				self.dir = 0
@@ -117,12 +111,12 @@ class GameSpace(object):
 
 	def make_players(self):
 		for i in xrange(self.num_players):
-			self.player_mowers.append(Square(self.mowers[i], [-100, -100], self))
+			self.player_mowers.append(Mower(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
 
 		self.ready = True
 
-class Square(pygame.sprite.Sprite):
+class Mower(pygame.sprite.Sprite):
 	def __init__(self, img_file, center, gs=None):
 		pygame.sprite.Sprite.__init__(self)
 		self.gs = gs
@@ -139,6 +133,16 @@ class Square(pygame.sprite.Sprite):
 		rot_rect.center = rot_image.get_rect().center
 		rot_image = rot_image.subsurface(rot_rect).copy()
 		return rot_image
+
+class Image(pygame.sprite.Sprite):
+	def __init__(self, img_file, center, gs=None):
+		pygame.sprite.Sprite.__init__(self)
+		self.gs = gs
+		self.original_image = pygame.image.load(img_file)
+		self.image = self.original_image
+		self.rect = self.image.get_rect()
+		# print center
+		self.rect.center = center
 
 class ServerConn(Protocol):
 	def __init__(self, gs):
