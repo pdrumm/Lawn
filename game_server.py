@@ -101,7 +101,7 @@ class GameSpace(object):
 		self.ghosts = pygame.sprite.Group()
 
 		# default rect size
-		image = pygame.image.load("laser_original.png")
+		image = pygame.image.load("images/laser_original.png")
 		self.default_rect = image.get_rect()
 
 		# array to hold the up to date position of players
@@ -223,7 +223,7 @@ if __name__ == '__main__':
 	for i in player_range:
 		# the reactor is just an event processor
 		reactor.listenTCP(
-			GAME_PORT + 1,
+			GAME_PORT + i,
 			GameServerConnectionFactory(gs.players[i])
 		)
 
