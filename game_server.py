@@ -46,7 +46,7 @@ class GameServerConnection(Protocol):
 				self.queue = self.players[self.player_num]['queue']
 				self.player = self.players[self.player_num]['player']
 				self.player.server_conn = self
-				print 'Player #{num} ready to begin'.format(num=self.player_num)
+				print 'GAMESERVER: Player #{num} ready to begin'.format(num=self.player_num)
 			elif key == "Key":
 				self.queue.put(data[key])
 				self.player.queue_len += 1
@@ -63,7 +63,7 @@ class GameServerConnection(Protocol):
 
 class GameServerConnectionFactory(Factory):
 	def __init__(self,players):
-		print 'Game Server initialized!'
+		print 'GAMESERVER: Game Server initialized!'
 		self.players = players
 	def buildProtocol(self,addr):
 		"""Build an instance of a game server connection that may service the player trying to connect."""
@@ -102,7 +102,7 @@ class GameSpace(object):
 		self.ghosts = pygame.sprite.Group()
 
 		# default rect size
-		image = pygame.image.load("images/laser_original.png")
+		image = pygame.image.load("images/blue_grass.png")
 		self.default_rect = image.get_rect()
 
 		# array to hold the up to date position of players
@@ -212,7 +212,7 @@ class GameSpace(object):
 if __name__ == '__main__':
 
 	if len(sys.argv)!=3:
-		print 'Usage: python game_server <number of players> <PORT>'
+		print 'GAMESERVER: Usage: python game_server <number of players> <PORT>'
 		exit()
 
 	# grab the number of players in this game
