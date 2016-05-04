@@ -90,7 +90,10 @@ class GameSpace(object):
 			#statu text
 			text1 = self.font.render("Players Ready: {0}/{1}".format(self.players_ready, self.num_players), True, (0, 0, 0))
 			text1pos = text1.get_rect(center = (self.width/2, self.height/2+50))
-			text2 = self.font.render("Game starting in {0} seconds...".format(self.countdown), True, (0, 0, 0))
+			if self.num_players <= 1:
+				text2 = self.font.render("Waiting for more players...", True, (0, 0, 0))
+			else:
+				text2 = self.font.render("Game starting in {0} seconds...".format(self.countdown), True, (0, 0, 0))
 			text2pos = text2.get_rect(center = (self.width/2, self.height/2+90))
 			self.screen.blit(text1, text1pos)
 			self.screen.blit(text2, text2pos)
