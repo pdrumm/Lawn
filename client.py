@@ -250,7 +250,7 @@ class GameConn(Protocol):
 		self.transport.write(data)
 		game_send.get().addCallback(self.game_sendCallback)
 
-	def connecitonLost(self, reason):
+	def connectionLost(self, reason):
 		print "connection lost to game server"
 		try:
 			reactor.stop()
