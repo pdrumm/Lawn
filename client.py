@@ -75,6 +75,7 @@ class GameSpace(object):
 			else:
 				if event.type == KEYDOWN:
 					if event.key == K_r:
+						print "ready"
 						match_send.put("ready")
 
 		#display game objects
@@ -144,6 +145,9 @@ class GameSpace(object):
 			match_receive.get().addCallback(self.match_receiveCallback)
 
 		#update seconds, number of players, and ready players
+		print "match:"
+		for k in new_state.keys():
+			print k, new_state[k]
 		self.num_players = new_state['Players Total']
 		if not new_state['Begin Game']:
 			self.players_ready = new_state['Players Ready']
@@ -157,6 +161,8 @@ class GameSpace(object):
 			game_receive.get().addCallback(self.game_receiveCallback)
 			self.player_number = new_state['Player Number']
 			self.make_players()
+
+		match_receive.get().addCallback(self.match_receiveCallback)
 
 	def make_players(self):
 		for i in xrange(self.num_players):
