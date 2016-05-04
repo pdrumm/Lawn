@@ -45,7 +45,7 @@ class GameSpace(object):
 		#possible ghost images
 		self.ghosts = ["images/red_grass.png", "images/blue_grass.png", "images/purple_grass.png", "images/orange_grass.png"]
 		#possible mower images
-		self.mowers = ["images/red_mower.png", "images/blue_mower.png", "images/purple_mower.png", "image/orange_mower.png"]
+		self.mowers = ["images/red_mower.png", "images/blue_mower.png", "images/purple_mower.png", "images/orange_mower.png"]
 		#title screen image
 		self.title = Image("images/title.png", [self.width/2, self.height/2], self)
 		#grass background image
@@ -200,6 +200,7 @@ class GameSpace(object):
 		match_receive.get().addCallback(self.match_receiveCallback)
 
 	def make_players(self):
+		print self.num_players
 		for i in xrange(self.num_players):
 			self.player_mowers.append(Mower(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
