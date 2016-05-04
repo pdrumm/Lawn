@@ -28,19 +28,16 @@ class GameServerConnection(Protocol):
 		"""This method initializes a few important varibles for the CommandServerConnection. The addr stores the ip address of the work client connected to itself. The ClientConn and DataConn, currently initiated to None, will point to the instance of the ClientServerConnection and DataServerConnection  that home has at a given instance in time. The queue is a deferred queue which will temporarily hold data sent from the ssh client until the data connection is made."""
 		self.addr = addr
 		self.players = players
-#		self.player_num = player_obj['player_num']
-#		self.queue = player_obj['queue']
-#		self.player = player_obj['player']
 		self.player_num = None
 		self.queue = None
 		self.player = None
-		print 'game server initialized!'
+		self.still_playing = True
 
 	def connectionMade(self):
 		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
-		print 'game connection received from {addr}'.format(addr=self.addr)
+		print 'Game connection received from {addr}'.format(addr=self.addr)
 
-	# Work -> Home
+	# Player -> Game Server
 	def dataReceived(self,data):
 		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
 		data = pickle.loads(data)
@@ -50,6 +47,7 @@ class GameServerConnection(Protocol):
 				self.queue = self.players[self.player_num]['queue']
 				self.player = self.players[self.player_num]['player']
 				self.player.server_conn = self
+				print 'Player #{num} ready to begin'.format(num=self.player_num)
 			elif key == "Key":
 				self.queue.put(data[key])
 				self.player.queue_len += 1
@@ -61,21 +59,16 @@ class GameServerConnection(Protocol):
 
 	def connectionLost(self,reason):
 		"""If the command connection is lost with work, then the home script should stop running."""
-		print 'command connection lost to {addr}'.format(addr=self.addr)
-		try:
-			reactor.stop()
-		except twisted_error.ReactorNotRunning:
-			pass
+		self.still_playing = False
 
 
 class GameServerConnectionFactory(Factory):
 	"""The ServerFactory is a factory that creates Protocols and receives events relating to the conenction state."""
 	def __init__(self,players):
 		self.players = players
-		print 'GameServerConnFactory initialized!'
+		print 'Game Server initialized!'
 	def buildProtocol(self,addr):
 		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
-		print 'conn attempted'
 		return GameServerConnection(addr,self.players)
 
 
@@ -86,8 +79,6 @@ class GameServerConnectionFactory(Factory):
 class GameSpace(object):
 	def __init__(self, player_range):
 		pygame.init()
-#		self.size = (self.width, self.height) = (640, 480)
-#		self.screen = pygame.display.set_mode(self.size)
 
 		##################
 		# GameSpace vars #
@@ -164,13 +155,6 @@ class GameSpace(object):
 		if players_ready_count == self.player_count:
 			self.players_ready = True
 
-		# when all of the players are ready, tell each player that we are ready to begin
-#		if self.players_ready:
-#			for pObj in self.players:
-#				pObj['player'].server_conn.update_player({
-#					'Player Count': self.player_count,
-#					'Player Number': pObj['player_num']
-#				})
 
 	def game_loop_iterate(self):
 		"""Input players is an array of objects: {player_num,player,queue}"""
@@ -210,6 +194,15 @@ class GameSpace(object):
 			if pObj['player'].queue_len > 0:
 				pObj['player'].queue_len -= 1
 				pObj['queue'].get().addCallback(pObj['player'].update_dir)
+
+		# end event loop if all players have lost connection
+		no_connections = True
+		for pObj in self.players:
+			if pObj['player'].server_conn.still_playing:
+				no_connections = False
+		if no_connections:
+			reactor.stop()
+			
 
 ####################################################
 ###################### MAIN ########################

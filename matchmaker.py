@@ -39,7 +39,6 @@ class MatchmakerServerConnection(Protocol):
 		self.addr = addr
 		self.is_ready = False
 		self.players = players
-		print 'matchmaker initialized!'
 
 	def connectionMade(self):
 		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
@@ -49,13 +48,11 @@ class MatchmakerServerConnection(Protocol):
 	# Player -> Matchmaker
 	def dataReceived(self,data):
 		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
-		print data
 		if data == "ready":
 			self.is_ready = True
 
 	def update_player(self,data):
 		"""Send the player the up to date game info"""
-		print "data: {data}".format(data=data)
 		data = pickle.dumps(data)
 		self.transport.write(data)
 
@@ -82,11 +79,10 @@ class MatchmakerServerConnection(Protocol):
 class MatchmakerServerConnectionFactory(Factory):
 	"""The ServerFactory is a factory that creates Protocols and receives events relating to the conenction state."""
 	def __init__(self,players):
+		print 'Matchmaker initialized!'
 		self.players = players
-		print 'MatchmakerServerConnFactory initialized!'
 	def buildProtocol(self,addr):
 		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
-		print 'conn attempted'
 		return MatchmakerServerConnection(addr,self.players)
 
 
@@ -100,27 +96,10 @@ def matchmaker_loop_iterate(players):
 	global MAX_PLAYERS, INIT_TIMER, START_TIME, GAME_PORT, WAIT_TIME, CURR_TIME, READY_TIME, FINAL_DIFF
 
 	num_players = len(players)
-	# if there is only one player connected, tell them that we're waiting for more
-#	if num_players <= 1:
-#		for i in range(num_players):
-#			players[i].update_player({
-#				"Begin Game": False,
-#				"Players Ready": 1,
-#				"Players Total": 1,
-#				"Time Left": int(WAIT_TIME)
-#			})
-#		INIT_TIMER = 1
-#		return
 
 	# check if we need to initialize the timer
 	if INIT_TIMER:
-		print "initializing timer"
 		START_TIME = time.time()
-		# store the start time of the automatic begin-play countdown for each player
-		for i in range(num_players):
-			if i >= MAX_PLAYERS:
-				break
-			players[i].countdown = START_TIME
 		INIT_TIMER = 0
 
 	# update the game-start timer
@@ -165,10 +144,9 @@ def matchmaker_loop_iterate(players):
 		try:
 			pid = os.fork()
 		except OSError as e:
-			print "could not fork game server process"
+			print "Error: Could not fork a game server process"
 			sys.exit(1)
 		if pid == 0: #child
-			print "exec'ing the game server"
 			os.execlp("python","python","game_server.py",str(players_ready),str(GAME_PORT))
 		else: #parent
 			# tell each player that their game is beginning, and which player number they are
@@ -180,9 +158,10 @@ def matchmaker_loop_iterate(players):
 			FINAL_DIFF = 0
 
 
-# Handler for dead children
+# Handler to collect children procs when they die
 def sigchld_handler(signum, frame):
 	os.wait()
+	print 'Child game server process completed.'
 
 ####################################################
 ###################### MAIN ########################
