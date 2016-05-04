@@ -75,7 +75,6 @@ class GameSpace(object):
 			else:
 				if event.type == KEYDOWN:
 					if event.key == K_r:
-						print "ready"
 						match_send.put("ready")
 
 		#display game objects
@@ -145,9 +144,6 @@ class GameSpace(object):
 			match_receive.get().addCallback(self.match_receiveCallback)
 
 		#update seconds, number of players, and ready players
-		print "match:"
-		for k in new_state.keys():
-			print k, new_state[k]
 		self.num_players = new_state['Players Total']
 		if not new_state['Begin Game']:
 			self.players_ready = new_state['Players Ready']
@@ -155,16 +151,19 @@ class GameSpace(object):
 
 		else:
 			#if time to play, connect to game server
+			print "game time"
 			GAME_HOST = new_state['Host']
 			GAME_PORT = new_state['Port']
 			reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
 			game_receive.get().addCallback(self.game_receiveCallback)
 			self.player_number = new_state['Player Number']
+			print self.player_number
 			self.make_players()
 
 		match_receive.get().addCallback(self.match_receiveCallback)
 
 	def make_players(self):
+		print "making players"
 		for i in xrange(self.num_players):
 			self.player_mowers.append(Mower(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
@@ -222,6 +221,8 @@ class MatchmakingConn(Protocol):
 		# 	self.gs.player_number = unpack['Player Number']
 		# 	self.gs.make_players()
 		# else:
+		unpack  = pickle.loads(data)
+		print unpack
 		match_receive.put(data)
 
 	def match_sendCallback(self, data):
@@ -270,7 +271,8 @@ class GameConnFactory(ClientFactory):
 		return GameConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
-		print "failed to connect to game server"
+		print "failed to connect to game server, trying again"
+		reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
 		# reactor.stop()
 
 if __name__ == '__main__':
