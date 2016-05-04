@@ -200,7 +200,6 @@ class GameSpace(object):
 		match_receive.get().addCallback(self.match_receiveCallback)
 
 	def make_players(self):
-		print self.num_players
 		for i in xrange(self.num_players):
 			self.player_mowers.append(Mower(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
@@ -213,7 +212,8 @@ class GameSpace(object):
 		self.offsets = [(self.offset,self.height/2),(self.width-self.offset,self.height/2),(self.width/2,self.offset),(self.width/2,self.height-self.offset)]
 
 		#rotate this clients player to proper orientation and set position
-		self.player_mowers[self.player_number].image = self.player_mowers[self.player_number].rot_center(self.player_mowers[self.player_number].original_image, 90*self.dirs[self.player_number])
+		self.dir = self.dirs[self.player_number]
+		self.player_mowers[self.player_number].image = self.player_mowers[self.player_number].rot_center(self.player_mowers[self.player_number].original_image, 90*self.dir)
 		x = self.offsets[self.player_number][0]
 		y = self.offsets[self.player_number][1]
 		self.player_mowers[self.player_number].rect.center = [x, y]
@@ -243,7 +243,6 @@ class Image(pygame.sprite.Sprite):
 		self.original_image = pygame.image.load(img_file)#save original image
 		self.image = self.original_image
 		self.rect = self.image.get_rect()
-		# print center
 		self.rect.center = center
 
 class MatchmakingConn(Protocol):
