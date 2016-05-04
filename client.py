@@ -167,7 +167,6 @@ class GameSpace(object):
 		match_receive.get().addCallback(self.match_receiveCallback)
 
 	def make_players(self):
-		print "making players"
 		for i in xrange(self.num_players):
 			self.player_mowers.append(Mower(self.mowers[i], [-100, -100], self))
 			self.player_shadows.append(pygame.sprite.Group())
@@ -213,10 +212,6 @@ class MatchmakingConn(Protocol):
 
 	def connectionLost(self, reason):
 		print "connection lost to", SERVER_HOST, "port", SERVER_PORT
-		try:
-			reactor.stop()
-		except:
-			pass
 
 	def dataReceived(self, data):
 		# if not self.gs.ready:
