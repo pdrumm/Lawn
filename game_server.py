@@ -1,4 +1,4 @@
-import sys, getopt
+import sys, getopt, os
 from server_player import Player
 try:
 	import cPickle as pickle
@@ -23,9 +23,9 @@ GAME_PORT = 40055
 ####################################################
 
 class GameServerConnection(Protocol):
-	"""An instance of the Protocol class is instantiated when you connect to the client and will go away when the connection is finished. This connection protocol handles home's connection on the command port, which is used to do initial setup and pass high level instructions."""
+	"""A game server connection is created for each player in this instance of the game. The game server connection is used to collect user input from the player, update the game state accordingly, and then send the new gamestate back to the user."""
 	def __init__(self,addr,players):
-		"""This method initializes a few important varibles for the CommandServerConnection. The addr stores the ip address of the work client connected to itself. The ClientConn and DataConn, currently initiated to None, will point to the instance of the ClientServerConnection and DataServerConnection  that home has at a given instance in time. The queue is a deferred queue which will temporarily hold data sent from the ssh client until the data connection is made."""
+		"""This method initializes a few important varibles, including variables unique to the player assigned to this conneciton. Some of these variables are the player's unique Player Number for the game, the player's message queue, and the player's server_player.Player instance."""
 		self.addr = addr
 		self.players = players
 		self.player_num = None
@@ -34,12 +34,11 @@ class GameServerConnection(Protocol):
 		self.still_playing = True
 
 	def connectionMade(self):
-		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
-		print 'Game connection received from {addr}'.format(addr=self.addr)
+		pass
 
 	# Player -> Game Server
 	def dataReceived(self,data):
-		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
+		"""The game server will receive one of two types of data from the player. At the very beginning of the game, the player tells the game server what their Player Number is so that the game server can assign it some corresponding unique variables to that number. Otherwise, the data received will be key presses that the server will then process to update the gamestate."""
 		data = pickle.loads(data)
 		for key in data.keys():
 			if key == "Player Number":
@@ -53,22 +52,21 @@ class GameServerConnection(Protocol):
 				self.player.queue_len += 1
 
 	def update_player(self,player_centers):
-		"""Send the player the up to date game info"""
+		"""Send the player the up to date game state/info"""
 		data = pickle.dumps(player_centers)
 		self.transport.write(data)
 
 	def connectionLost(self,reason):
-		"""If the command connection is lost with work, then the home script should stop running."""
+		"""If the player's connection is lost, then the server keeps track of this. No action will be taken, unless all players' connections are lost."""
 		self.still_playing = False
 
 
 class GameServerConnectionFactory(Factory):
-	"""The ServerFactory is a factory that creates Protocols and receives events relating to the conenction state."""
 	def __init__(self,players):
-		self.players = players
 		print 'Game Server initialized!'
+		self.players = players
 	def buildProtocol(self,addr):
-		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
+		"""Build an instance of a game server connection that may service the player trying to connect."""
 		return GameServerConnection(addr,self.players)
 
 
@@ -77,6 +75,7 @@ class GameServerConnectionFactory(Factory):
 ####################################################
 
 class GameSpace(object):
+	"""The gamespace is an object, used for convenience, to keep track of player data. This object also has a number of methods used to reduce any sort of redundancy and keep the main game loop as clean as possible."""
 	def __init__(self, player_range):
 		pygame.init()
 
@@ -116,6 +115,7 @@ class GameSpace(object):
 			})
 
 	def new_ghost(self,center):
+		"""Generate and return a new sprite. This function is used to return a new instance of a 'ghost' object - ie. a piece of the trail behind one of the players."""
 		ghost = pygame.sprite.Sprite()
 		ghost.rect = self.default_rect.copy()
 		ghost.rect.center = center
@@ -146,6 +146,7 @@ class GameSpace(object):
 				player.is_alive = False
 
 	def wait_for_players(self):
+		"""Do not start the main functionality of the game loop until all of the players are connected."""
 		# check to see if all players are ready
 		players_ready_count = self.player_count
 		for pObj in self.players:
@@ -157,7 +158,7 @@ class GameSpace(object):
 
 
 	def game_loop_iterate(self):
-		"""Input players is an array of objects: {player_num,player,queue}"""
+		"""Input players is an array of objects of the form {player_num,player,queue}. This game loop will tick the players, updating the overall gamestate, and then send the new gamestate back to each of the players."""
 		# wait until all players have connected
 		if not self.players_ready:
 			gs.wait_for_players()
@@ -222,9 +223,7 @@ if __name__ == '__main__':
 	# initialize gamespace and generate the player objects within game
 	gs = GameSpace(player_range)
 
-	# Listen on all players' ports
-#	for i in player_range:
-	# the reactor is just an event processor
+	# Listen for players to connect
 	reactor.listenTCP(
 		GAME_PORT,
 		GameServerConnectionFactory(gs.players)
@@ -239,3 +238,6 @@ if __name__ == '__main__':
 
 	# after reactor stops, end game loop
 	lc.stop()
+
+	# clean exit
+	os._exit(0)
