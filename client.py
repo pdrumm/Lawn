@@ -65,13 +65,17 @@ class GameSpace(object):
 			elif self.ready:
 				if event.type == KEYDOWN:
 					if event.key == K_UP:
-						game_send.put("up")
+						data = pickle.dumps({"Key": "up"})
+						game_send.put(data)
 					elif event.key == K_DOWN:
-						game_send.put("down")
+						data = pickle.dumps({"Key": "down"})
+						game_send.put(data)
 					elif event.key == K_LEFT:
-						game_send.put("left")
+						data = pickle.dumps({"Key": "left"})
+						game_send.put(data)
 					elif event.key == K_RIGHT:
-						game_send.put("right")
+						data = pickle.dumps({"Key": "right"})
+						game_send.put(data)
 			else:
 				if event.type == KEYDOWN:
 					if event.key == K_r:
@@ -151,13 +155,11 @@ class GameSpace(object):
 
 		else:
 			#if time to play, connect to game server
-			print "game time"
 			GAME_HOST = new_state['Host']
 			GAME_PORT = new_state['Port']
 			reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
 			game_receive.get().addCallback(self.game_receiveCallback)
 			self.player_number = new_state['Player Number']
-			print self.player_number
 			self.make_players()
 
 		match_receive.get().addCallback(self.match_receiveCallback)
@@ -221,8 +223,6 @@ class MatchmakingConn(Protocol):
 		# 	self.gs.player_number = unpack['Player Number']
 		# 	self.gs.make_players()
 		# else:
-		unpack  = pickle.loads(data)
-		print unpack
 		match_receive.put(data)
 
 	def match_sendCallback(self, data):
@@ -249,8 +249,8 @@ class GameConn(Protocol):
 	def connectionMade(self):
 		print "connection made to game server"
 		#tell game server your player number
-		self.transport.write(self.gs.player_number)
-
+		data = pickle.dumps({'Player Number': self.gs.player_number})
+		self.transport.write(data)
 
 	def connecitonLost(self, reason):
 		print "connection lost to game server"
@@ -271,8 +271,8 @@ class GameConnFactory(ClientFactory):
 		return GameConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
-		print "failed to connect to game server, trying again"
-		reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
+		# print "failed to connect to game server, trying again", "(", GAME_HOST, GAME_PORT, ")"
+		reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self.gs))
 		# reactor.stop()
 
 if __name__ == '__main__':
