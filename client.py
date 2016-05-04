@@ -56,9 +56,14 @@ class GameSpace(object):
 		self.countdown = 100#seconds until game starts
 		self.font = pygame.font.Font(None, 30)#font object for dynamic text
 		self.win = False#boolean for if you have won
+		self.start = False#boolean for if game is about to start
+		self.offset = 30
+		self.offsets = []
+		self.dirs = []
 
 	def main(self):
-		self.tick = (self.tick+1)%self.flip_rate
+		self.tick = (self.tick+1)
+
 		#user input
 		for event in pygame.event.get():
 			if event.type == QUIT:
@@ -83,7 +88,10 @@ class GameSpace(object):
 						match_send.put("ready")
 
 		#display game objects
-		self.screen.blit(self.background.image, self.background.rect)
+		if not self.start:
+			self.screen.blit(self.background.image, self.background.rect)
+		else:
+			self.screen.fill((0, 0, 0))
 		if not self.ready:
 			#display loading screen
 			self.screen.blit(self.title.image, self.title.rect)
@@ -97,6 +105,12 @@ class GameSpace(object):
 			text2pos = text2.get_rect(center = (self.width/2, self.height/2+90))
 			self.screen.blit(text1, text1pos)
 			self.screen.blit(text2, text2pos)
+		elif self.start:
+			text = self.font.render("Loading...", True, (255, 255, 255))
+			textpos = text.get_rect(center = (self.width/2, self.height/2))
+			self.screen.blit(text, textpos)
+			self.initial_placement()
+			self.screen.blit(self.player_mowers[self.player_number].image, self.player_mowers[self.player_number].rect)
 		else:
 			#display game
 			if len(self.player_shadows) > 0:
@@ -109,9 +123,14 @@ class GameSpace(object):
 				self.screen.blit(self.win_screen.image, self.win_screen.rect) 
 			elif not self.alive:
 				self.screen.blit(self.game_over.image, self.game_over.rect)
-		pygame.display.flip()
-		# else:
-			# pygame.display.update(self.Image)
+
+		if self.start:
+			pygame.display.flip()
+			time.sleep(3)
+			reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
+			self.start = False
+		else:
+			pygame.display.flip()
 
 	def game_receiveCallback(self, data):
 		#receive new center
@@ -146,6 +165,7 @@ class GameSpace(object):
 		game_receive.get().addCallback(self.game_receiveCallback)
 
 	def match_receiveCallback(self, data):
+		global GAME_HOST, GAME_PORT
 		try:
 			new_state = pickle.loads(data)
 		except:
@@ -159,12 +179,14 @@ class GameSpace(object):
 
 		else:
 			#if time to play, connect to game server
-			time.sleep(3)
+			# time.sleep(3)
 			GAME_HOST = new_state['Host']
 			GAME_PORT = new_state['Port']
-			reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
+			# reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
 			game_receive.get().addCallback(self.game_receiveCallback)
 			self.player_number = new_state['Player Number']
+			self.start = True
+			self.start_tick = self.tick
 			self.make_players()
 
 		match_receive.get().addCallback(self.match_receiveCallback)
@@ -175,6 +197,15 @@ class GameSpace(object):
 			self.player_shadows.append(pygame.sprite.Group())
 
 		self.ready = True
+
+	def initial_placement(self):
+		self.dirs = [0,2,3,1]
+		self.offsets = [(self.offset,self.height/2),(self.width-self.offset,self.height/2),(self.width/2,self.offset),(self.width/2,self.height-self.offset)]
+
+		self.player_mowers[self.player_number].image = self.player_mowers[self.player_number].rot_center(self.player_mowers[self.player_number].original_image, 90*self.dirs[self.player_number])
+		x = self.offsets[self.player_number][0]
+		y = self.offsets[self.player_number][1]
+		self.player_mowers[self.player_number].rect.center = [x, y]
 
 class Mower(pygame.sprite.Sprite):
 	def __init__(self, img_file, center, gs=None):
@@ -240,7 +271,6 @@ class MatchmakingConnFactory(ClientFactory):
 
 	def clientConnectionFailed(self, connector, reason):
 		print "failed to connect to", SERVER_HOST, "port", SERVER_PORT
-		# reactor.stop()
 
 class GameConn(Protocol):
 	def __init__(self, gs):
