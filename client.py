@@ -150,6 +150,7 @@ class GameSpace(object):
 			game_receive.get().addCallback(self.game_receiveCallback)
 			return
 		#create new Image sprite with new center
+		dead_players = 0
 		for i in xrange(self.num_players):
 			self.curr_shadow = Image(self.ghosts[i], [new_state[i]['center'][0], new_state[i]['center'][1]], self)
 		#update center of player and direction
@@ -165,7 +166,6 @@ class GameSpace(object):
 			self.player_mowers[i].image = self.player_mowers[i].rot_center(self.player_mowers[i].original_image, 90*self.dir)
 		#add new sprite to group
 			self.player_shadows[i].add(self.curr_shadow)
-			dead_players = 0
 			#check if any players have lost
 			if new_state[i]['alive'] == False:
 				dead_players += 1
