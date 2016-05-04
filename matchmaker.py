@@ -1,4 +1,4 @@
-import sys, getopt, os
+import sys, getopt, os, signal
 import time
 try:
 	import cPickle as pickle
@@ -25,6 +25,7 @@ HOST_NAME = "student03.cse.nd.edu"
 INIT_TIMER = True
 START_TIME = 0.0
 CURR_TIME = WAIT_TIME
+FINAL_DIFF = 0
 
 
 ####################################################
@@ -48,11 +49,13 @@ class MatchmakerServerConnection(Protocol):
 	# Player -> Matchmaker
 	def dataReceived(self,data):
 		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
+		print data
 		if data == "ready":
 			self.is_ready = True
 
 	def update_player(self,data):
 		"""Send the player the up to date game info"""
+		print "data: {data}".format(data=data)
 		data = pickle.dumps(data)
 		self.transport.write(data)
 
@@ -65,10 +68,15 @@ class MatchmakerServerConnection(Protocol):
 			"Port": game_port
 		}
 		self.update_player(data)
+		self.transport.loseConnection()
 
 	def connectionLost(self,reason):
 		"""If the command connection is lost with work, then the home script should stop running."""
 		print 'matchmaker connection lost to {addr}'.format(addr=self.addr)
+		try:
+			self.players.remove(self)
+		except:
+			pass
 
 
 class MatchmakerServerConnectionFactory(Factory):
@@ -88,24 +96,35 @@ class MatchmakerServerConnectionFactory(Factory):
 
 def matchmaker_loop_iterate(players):
 	"""This loop will determine whether or not to start a game by checking the status of all of the players, and then do so if called for."""
+	# globals
+	global MAX_PLAYERS, INIT_TIMER, START_TIME, GAME_PORT, WAIT_TIME, CURR_TIME, READY_TIME, FINAL_DIFF
+
 	num_players = len(players)
 	# if there is only one player connected, tell them that we're waiting for more
-	if num_players <= 1:
-		# players[0].message("waiting for more users to connect...")
-		return
+#	if num_players <= 1:
+#		for i in range(num_players):
+#			players[i].update_player({
+#				"Begin Game": False,
+#				"Players Ready": 1,
+#				"Players Total": 1,
+#				"Time Left": int(WAIT_TIME)
+#			})
+#		INIT_TIMER = 1
+#		return
 
 	# check if we need to initialize the timer
-	if num_players > 1 and INIT_TIMER:
+	if INIT_TIMER:
+		print "initializing timer"
 		START_TIME = time.time()
 		# store the start time of the automatic begin-play countdown for each player
-		for i in range(players):
+		for i in range(num_players):
 			if i >= MAX_PLAYERS:
 				break
 			players[i].countdown = START_TIME
 		INIT_TIMER = 0
 
 	# update the game-start timer
-	CURR_TIME = time.time() - START_TIME
+	CURR_TIME = WAIT_TIME - (time.time()-START_TIME)
 
 	# If everyone is ready, then set decrease the clock to a smaller time-til-game-start
 	players_ready = 0
@@ -116,28 +135,32 @@ def matchmaker_loop_iterate(players):
 		players_total += 1
 		if players[i].is_ready:
 			players_ready += 1
-	if players_ready == players_total:
-		if CURR_TIME < READY_TIME:
-			CURR_TIME = READY_TIME
+	if players_ready == players_total and num_players>1:
+		if CURR_TIME > READY_TIME:
+			CURR_TIME = READY_TIME - FINAL_DIFF
+			FINAL_DIFF += 1
 	# if there are MAX players, then autostart
 	if num_players >= MAX_PLAYERS:
 		players_ready = MAX_PLAYERS
-		if CURR_TIME < READY_TIME:
-			CURR_TIME = READY_TIME
+		if CURR_TIME > READY_TIME:
+			CURR_TIME = READY_TIME - FINAL_DIFF
+			FINAL_DIFF += 1
 
 	# update each of the players on other players and when the game will begin
-	for i in range(num_players):
-		if i >= MAX_PLAYERS-1:
-			break
-		players[i].update_player({
-			"Begin Game": False,
-			"Players Ready": players_ready,
-			"Players Total": players_total,
-			"Time Left": CURR_TIME
-		})
-
+	if CURR_TIME > 0.0:
+		for i in range(num_players):
+			if i >= MAX_PLAYERS-1:
+				break
+			players[i].update_player({
+				"Begin Game": False,
+				"Players Ready": players_ready,
+				"Players Total": players_total,
+				"Time Left": int(CURR_TIME)
+			})
+		if num_players <= 1:
+			INIT_TIMER = 1
 	# if the timer hits zero, then begin the game!
-	if CURR_TIME <= 0.0:
+	else:
 		# fork off a new game server for the clients to connect to
 		try:
 			pid = os.fork()
@@ -145,7 +168,8 @@ def matchmaker_loop_iterate(players):
 			print "could not fork game server process"
 			sys.exit(1)
 		if pid == 0: #child
-			execlp("game_server","game_server",players_ready)
+			print "exec'ing the game server"
+			os.execlp("python","python","game_server.py",str(players_ready),str(GAME_PORT))
 		else: #parent
 			# tell each player that their game is beginning, and which player number they are
 			for i in range(players_ready):
@@ -153,6 +177,7 @@ def matchmaker_loop_iterate(players):
 				player.start_game(i,players_ready,GAME_PORT)
 			GAME_PORT += 1
 			INIT_TIMER = 1
+			FINAL_DIFF = 0
 
 
 # Handler for dead children

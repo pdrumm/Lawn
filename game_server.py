@@ -15,7 +15,7 @@ from twisted.internet.defer import DeferredQueue
 from twisted.internet.task import LoopingCall
 
 # Define Ports:
-GAME_PORT = 40091
+GAME_PORT = 40055
 
 
 ####################################################
@@ -24,24 +24,35 @@ GAME_PORT = 40091
 
 class GameServerConnection(Protocol):
 	"""An instance of the Protocol class is instantiated when you connect to the client and will go away when the connection is finished. This connection protocol handles home's connection on the command port, which is used to do initial setup and pass high level instructions."""
-	def __init__(self,addr,player_obj):
+	def __init__(self,addr,players):
 		"""This method initializes a few important varibles for the CommandServerConnection. The addr stores the ip address of the work client connected to itself. The ClientConn and DataConn, currently initiated to None, will point to the instance of the ClientServerConnection and DataServerConnection  that home has at a given instance in time. The queue is a deferred queue which will temporarily hold data sent from the ssh client until the data connection is made."""
 		self.addr = addr
-		self.player_num = player_obj['player_num']
-		self.queue = player_obj['queue']
-		self.player = player_obj['player']
+		self.players = players
+#		self.player_num = player_obj['player_num']
+#		self.queue = player_obj['queue']
+#		self.player = player_obj['player']
+		self.player_num = None
+		self.queue = None
+		self.player = None
 		print 'game server initialized!'
 
 	def connectionMade(self):
 		"""When the command connection to work is made, begin to listen on the client port for any potential ssh client requests."""
 		print 'game connection received from {addr}'.format(addr=self.addr)
-		self.player.server_conn = self
 
 	# Work -> Home
 	def dataReceived(self,data):
 		"""After establishing the connection with work, home has no need to receive any data from work over the command connection."""
-		self.queue.put(data)
-		self.player.queue_len += 1
+		data = pickle.loads(data)
+		for key in data.keys():
+			if key == "Player Number":
+				self.player_num = data[key]
+				self.queue = self.players[self.player_num]['queue']
+				self.player = self.players[self.player_num]['player']
+				self.player.server_conn = self
+			elif key == "Key":
+				self.queue.put(data[key])
+				self.player.queue_len += 1
 
 	def update_player(self,player_centers):
 		"""Send the player the up to date game info"""
@@ -59,13 +70,13 @@ class GameServerConnection(Protocol):
 
 class GameServerConnectionFactory(Factory):
 	"""The ServerFactory is a factory that creates Protocols and receives events relating to the conenction state."""
-	def __init__(self,player_obj):
-		self.player_obj = player_obj
+	def __init__(self,players):
+		self.players = players
 		print 'GameServerConnFactory initialized!'
 	def buildProtocol(self,addr):
 		"""Creates an instance of a subclass of Protocol. We override this method to alter how Protocol instances get created by using the CommandServerConnection class that inherits from Protocol. This creates an instance of a CommandServerConnection with a given client that connects to the proxy."""
 		print 'conn attempted'
-		return GameServerConnection(addr,self.player_obj)
+		return GameServerConnection(addr,self.players)
 
 
 ####################################################
@@ -154,12 +165,12 @@ class GameSpace(object):
 			self.players_ready = True
 
 		# when all of the players are ready, tell each player that we are ready to begin
-		if self.players_ready:
-			for pObj in self.players:
-				pObj['player'].server_conn.update_player({
-					'Player Count': self.player_count,
-					'Player Number': pObj['player_num']
-				})
+#		if self.players_ready:
+#			for pObj in self.players:
+#				pObj['player'].server_conn.update_player({
+#					'Player Count': self.player_count,
+#					'Player Number': pObj['player_num']
+#				})
 
 	def game_loop_iterate(self):
 		"""Input players is an array of objects: {player_num,player,queue}"""
@@ -206,24 +217,25 @@ class GameSpace(object):
 
 if __name__ == '__main__':
 
-	if len(sys.argv)!=2:
-		print 'Usage: python game_server <number of players>'
+	if len(sys.argv)!=3:
+		print 'Usage: python game_server <number of players> <PORT>'
 		exit()
 
 	# grab the number of players in this game
 	player_count = int(sys.argv[1])
+	GAME_PORT = int(sys.argv[2])
 	player_range = range(player_count)
 
 	# initialize gamespace and generate the player objects within game
 	gs = GameSpace(player_range)
 
 	# Listen on all players' ports
-	for i in player_range:
-		# the reactor is just an event processor
-		reactor.listenTCP(
-			GAME_PORT + i,
-			GameServerConnectionFactory(gs.players[i])
-		)
+#	for i in player_range:
+	# the reactor is just an event processor
+	reactor.listenTCP(
+		GAME_PORT,
+		GameServerConnectionFactory(gs.players)
+	)
 
 	# initialize game loop
 	lc = LoopingCall(gs.game_loop_iterate)
