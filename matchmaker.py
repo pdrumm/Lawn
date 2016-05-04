@@ -131,7 +131,7 @@ def matchmaker_loop_iterate(players):
 	# update each of the players on other players and when the game will begin
 	if CURR_TIME > 0.0:
 		for i in range(num_players):
-			if i >= MAX_PLAYERS-1:
+			if i >= MAX_PLAYERS:
 				break
 			players[i].update_player({
 				"Begin Game": False,
@@ -143,11 +143,17 @@ def matchmaker_loop_iterate(players):
 			INIT_TIMER = 1
 	# if the timer hits zero, then begin the game!
 	else:
+		# calculate the number of players in the game
+		players_ready = 0
+		for i in range(num_players):
+			if i >= MAX_PLAYERS:
+				break
+			players_ready += 1
 		# fork off a new game server for the clients to connect to
 		try:
 			pid = os.fork()
 		except OSError as e:
-			print "Error: Could not fork a game server process"
+			print "MATCHMAKER: Error: Could not fork a game server process"
 			sys.exit(1)
 		if pid == 0: #child
 			os.execlp("python","python","game_server.py",str(players_ready),str(GAME_PORT))
@@ -159,6 +165,7 @@ def matchmaker_loop_iterate(players):
 			for i in range(players_ready):
 				player = players.pop(0)
 				player.start_game(i,players_ready,GAME_PORT)
+
 			GAME_PORT += 1
 			INIT_TIMER = 1
 			FINAL_DIFF = 0
@@ -166,7 +173,7 @@ def matchmaker_loop_iterate(players):
 
 # Handler to collect children procs when they die
 def sigchld_handler(signum, frame):
-	print 'Child GameServer process completed.'
+	print 'MATCHMAKER: Child GameServer process completed.'
 	os.wait()
 
 ####################################################
