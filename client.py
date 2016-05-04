@@ -253,6 +253,7 @@ class GameConn(Protocol):
 		#tell game server your player number
 		data = pickle.dumps({'Player Number': self.gs.player_number})
 		self.transport.write(data)
+		game_send.get().addCallback(self.game_sendCallback)
 
 	def connecitonLost(self, reason):
 		print "connection lost to game server"
@@ -264,6 +265,9 @@ class GameConn(Protocol):
 	def dataReceived(self, data):
 		game_receive.put(data)
 
+	def game_sendCallback(self, data):
+		self.transport.write(data)
+		game_send.get().addCallback(self.game_sendCallback)
 
 class GameConnFactory(ClientFactory):
 	def __init__(self, gs):
