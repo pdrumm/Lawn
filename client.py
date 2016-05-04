@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 try:
 	import cPickle as pickle
 except:
@@ -102,7 +103,7 @@ class GameSpace(object):
 				for player in self.player_mowers:
 					self.screen.blit(player.image, player.rect)
 			if self.win:
-				self.screen.blit(self.win_screen.image, self.win_screen,rect) 
+				self.screen.blit(self.win_screen.image, self.win_screen.rect) 
 			elif not self.alive:
 				self.screen.blit(self.game_over.image, self.game_over.rect)
 		pygame.display.flip()
@@ -155,6 +156,7 @@ class GameSpace(object):
 
 		else:
 			#if time to play, connect to game server
+			time.sleep(3)
 			GAME_HOST = new_state['Host']
 			GAME_PORT = new_state['Port']
 			reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self))
@@ -271,9 +273,8 @@ class GameConnFactory(ClientFactory):
 		return GameConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
-		# print "failed to connect to game server, trying again", "(", GAME_HOST, GAME_PORT, ")"
-		reactor.connectTCP(GAME_HOST, GAME_PORT, GameConnFactory(self.gs))
-		# reactor.stop()
+		print "failed to connect to game server"
+		reactor.stop()
 
 if __name__ == '__main__':
 	print 'Initializing pygame Gamespace...'
