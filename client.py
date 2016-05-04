@@ -251,11 +251,11 @@ class MatchmakingConn(Protocol):
 		self.gs = gs
 
 	def connectionMade(self):
-		print "connection made to", SERVER_HOST, "port", SERVER_PORT
+		print "matchmaking: connection made to", SERVER_HOST, "port", SERVER_PORT
 		match_send.get().addCallback(self.match_sendCallback)
 
 	def connectionLost(self, reason):
-		print "connection lost to", SERVER_HOST, "port", SERVER_PORT
+		print "matchmaking: connection lost to", SERVER_HOST, "port", SERVER_PORT
 
 	def dataReceived(self, data):
 		match_receive.put(data)#put data on queue from matchmaking server
@@ -272,7 +272,7 @@ class MatchmakingConnFactory(ClientFactory):
 		return MatchmakingConn(self.gs)
 
 	def clientConnectionFailed(self, connector, reason):
-		print "failed to connect to", SERVER_HOST, "port", SERVER_PORT
+		print "matchmaking: failed to connect to", SERVER_HOST, "port", SERVER_PORT
 
 class GameConn(Protocol):
 	def __init__(self, gs):
